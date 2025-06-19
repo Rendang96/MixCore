@@ -6,8 +6,10 @@ import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { PageBreadcrumbs } from "@/components/page-breadcrumbs"
+import { getProducts } from "@/lib/product/product-storage"
+import { ChevronDown, ChevronRight } from "lucide-react"
 
-type TabType = "basic-info" | "contact-details"
+type TabType = "basic-info" | "contact-details" | "products"
 
 // Define the Payor interface if not already imported
 interface PayorContact {
@@ -44,6 +46,7 @@ interface ViewPayorProps {
 
 export function ViewPayor({ payor, onBack }: ViewPayorProps) {
   const [activeTab, setActiveTab] = useState<TabType>("basic-info")
+  const [expandedProducts, setExpandedProducts] = useState<Set<string>>(new Set())
 
   // Breadcrumb items for View Payor
   const breadcrumbItems = [
@@ -60,6 +63,27 @@ export function ViewPayor({ payor, onBack }: ViewPayorProps) {
 
   const handleTabClick = (tab: TabType) => {
     setActiveTab(tab)
+  }
+
+  const toggleProductExpansion = (productId: string) => {
+    const newExpanded = new Set(expandedProducts)
+    if (newExpanded.has(productId)) {
+      newExpanded.delete(productId)
+    } else {
+      newExpanded.add(productId)
+    }
+    setExpandedProducts(newExpanded)
+  }
+
+  const getPoliciesForProduct = (productCode: string) => {
+    try {
+      // Use the correct storage key that matches the policy storage system
+      const policies = JSON.parse(localStorage.getItem("policies") || "[]")
+      return policies.filter((policy: any) => policy.productCode === productCode)
+    } catch (error) {
+      console.error("Error getting policies for product:", error)
+      return []
+    }
   }
 
   return (
@@ -95,6 +119,14 @@ export function ViewPayor({ payor, onBack }: ViewPayorProps) {
           onClick={() => handleTabClick("contact-details")}
         >
           Contact Details
+        </button>
+        <button
+          className={`px-4 py-2 font-medium ${
+            activeTab === "products" ? "border-b-2 border-sky-600 text-sky-600" : "text-slate-600 hover:text-slate-900"
+          }`}
+          onClick={() => handleTabClick("products")}
+        >
+          Products
         </button>
       </div>
 
@@ -189,7 +221,7 @@ export function ViewPayor({ payor, onBack }: ViewPayorProps) {
             </div>
           </div>
         </div>
-      ) : (
+      ) : activeTab === "contact-details" ? (
         <div className="rounded-lg border bg-white p-6 shadow-sm">
           {payor.contacts.length === 0 ? (
             <div className="text-center py-8">
@@ -236,7 +268,137 @@ export function ViewPayor({ payor, onBack }: ViewPayorProps) {
             </div>
           )}
         </div>
-      )}
+      ) : activeTab === "products" ? (
+        <div className="rounded-lg border bg-white p-6 shadow-sm">
+          {(() => {
+            const products = getProducts().filter((product) => product.payorCode === payor.code)
+            return products.length === 0 ? (
+              <div className="text-center py-8">
+                <p className="text-slate-500">No products assigned to this payor.</p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full border-collapse">
+                  <thead>
+                    <tr className="border-b text-left text-sm font-medium text-slate-500">
+                      <th className="py-3 px-4 w-8"></th>
+                      <th className="py-3 px-4">No.</th>
+                      <th className="py-3 px-4">Product Code</th>
+                      <th className="py-3 px-4">Product Name</th>
+                      <th className="py-3 px-4">Type</th>
+                      <th className="py-3 px-4">Status</th>
+                      <th className="py-3 px-4">Created Date</th>
+                      <th className="py-3 px-4">Policies</th>
+                    </tr>
+                  </thead>
+                  <tbody className="text-sm">
+                    {products.map((product, index) => {
+                      const policies = getPoliciesForProduct(product.code)
+                      const isExpanded = expandedProducts.has(product.id)
+                      return (
+                        <>
+                          <tr key={product.id} className="text-slate-700 border-b hover:bg-slate-50">
+                            <td className="py-3 px-4">
+                              {policies.length > 0 && (
+                                <button
+                                  onClick={() => toggleProductExpansion(product.id)}
+                                  className="text-slate-400 hover:text-slate-600"
+                                >
+                                  {isExpanded ? (
+                                    <ChevronDown className="h-4 w-4" />
+                                  ) : (
+                                    <ChevronRight className="h-4 w-4" />
+                                  )}
+                                </button>
+                              )}
+                            </td>
+                            <td className="py-3 px-4">{index + 1}</td>
+                            <td className="py-3 px-4 font-medium">{product.code}</td>
+                            <td className="py-3 px-4">{product.name}</td>
+                            <td className="py-3 px-4">{product.type || "N/A"}</td>
+                            <td className="py-3 px-4">
+                              <span
+                                className={`inline-flex rounded-full px-2 py-1 text-xs font-medium ${
+                                  product.status === "Active"
+                                    ? "bg-emerald-100 text-emerald-700"
+                                    : "bg-amber-100 text-amber-700"
+                                }`}
+                              >
+                                {product.status}
+                              </span>
+                            </td>
+                            <td className="py-3 px-4">
+                              {product.createdAt ? new Date(product.createdAt).toLocaleDateString() : "N/A"}
+                            </td>
+                            <td className="py-3 px-4">
+                              <span className="inline-flex rounded-full bg-blue-100 text-blue-700 px-2 py-1 text-xs font-medium">
+                                {policies.length} {policies.length === 1 ? "Policy" : "Policies"}
+                              </span>
+                            </td>
+                          </tr>
+                          {isExpanded && policies.length > 0 && (
+                            <tr key={`${product.id}-policies`}>
+                              <td colSpan={8} className="py-0 px-4">
+                                <div className="bg-slate-50 rounded-lg p-4 my-2">
+                                  <h4 className="text-sm font-medium text-slate-700 mb-3">
+                                    Policies for {product.name}
+                                  </h4>
+                                  <div className="overflow-x-auto">
+                                    <table className="w-full border-collapse">
+                                      <thead>
+                                        <tr className="border-b text-left text-xs font-medium text-slate-500">
+                                          <th className="py-2 px-3">Policy Number</th>
+                                          <th className="py-2 px-3">Policy Name</th>
+                                          <th className="py-2 px-3">Status</th>
+                                          <th className="py-2 px-3">Effective Date</th>
+                                          <th className="py-2 px-3">Expiry Date</th>
+                                        </tr>
+                                      </thead>
+                                      <tbody className="divide-y text-xs">
+                                        {policies.map((policy: any) => (
+                                          <tr key={policy.id} className="text-slate-600">
+                                            <td className="py-2 px-3 font-medium">{policy.policyNumber}</td>
+                                            <td className="py-2 px-3">{policy.policyName}</td>
+                                            <td className="py-2 px-3">
+                                              <span
+                                                className={`inline-flex rounded-full px-2 py-1 text-xs font-medium ${
+                                                  policy.status === "Active"
+                                                    ? "bg-emerald-100 text-emerald-700"
+                                                    : "bg-amber-100 text-amber-700"
+                                                }`}
+                                              >
+                                                {policy.status}
+                                              </span>
+                                            </td>
+                                            <td className="py-2 px-3">
+                                              {policy.effectiveDate
+                                                ? new Date(policy.effectiveDate).toLocaleDateString()
+                                                : "N/A"}
+                                            </td>
+                                            <td className="py-2 px-3">
+                                              {policy.expiryDate
+                                                ? new Date(policy.expiryDate).toLocaleDateString()
+                                                : "N/A"}
+                                            </td>
+                                          </tr>
+                                        ))}
+                                      </tbody>
+                                    </table>
+                                  </div>
+                                </div>
+                              </td>
+                            </tr>
+                          )}
+                        </>
+                      )
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )
+          })()}
+        </div>
+      ) : null}
     </div>
   )
 }

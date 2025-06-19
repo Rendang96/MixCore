@@ -11,8 +11,6 @@ import { Card, CardContent } from "@/components/ui/card"
 import { FileText, Search, Download } from "lucide-react"
 import { PayorStorage } from "@/lib/payor/payor-storage"
 import type { Payor } from "@/lib/payor/payor-storage"
-// Add import for dummy data at the top of the file
-import { initializeDummyPayors } from "@/lib/payor/dummy-data"
 
 export function PayorSearch() {
   const [view, setView] = useState<"search" | "listing" | "create" | "edit" | "view">("search")
@@ -87,6 +85,11 @@ export function PayorSearch() {
     }
   }, [view, editingPayor, viewingPayor, showResults])
 
+  // Initialize dummy data on component mount
+  useEffect(() => {
+    PayorStorage.initializeDummyData()
+  }, [])
+
   // Handle breadcrumb navigation
   const handleBreadcrumbNavigation = (targetView: "search" | "listing") => {
     setView(targetView)
@@ -113,9 +116,6 @@ export function PayorSearch() {
 
   // Load payors from storage on component mount
   useEffect(() => {
-    // Initialize dummy data if no payors exist
-    initializeDummyPayors()
-
     const payors = PayorStorage.getAllPayors()
     setPayors(payors)
   }, [])

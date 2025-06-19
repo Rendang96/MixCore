@@ -1,35 +1,183 @@
 // lib/person/person-storage.ts
 
-// Define the Person interface
-export interface Person {
+import type { Person as PersonType } from "./person-types"
+
+// New improved interfaces for better relationship modeling
+
+// ===================================================================
+// IMPORTANT: FAMILY RELATIONSHIPS vs PLAN COVERAGE SEPARATION
+// ===================================================================
+//
+// This system maintains a clear separation between:
+// 1. FAMILY RELATIONSHIPS - All registered family connections (permanent records)
+// 2. PLAN COVERAGE - Who is covered under specific insurance plans (can change)
+//
+// The Family Member Information tab shows ALL registered family members,
+// regardless of whether they are covered by any insurance plan or not.
+// This ensures future flexibility and complete family record keeping.
+// ===================================================================
+
+export interface PersonRelationship {
   id: string
-  name: string
+  personId1: string // ID of the primary person
+  personId2: string // ID of the related person (dependent)
+  relationshipType: string // e.g., "Spouse", "Child", "Parent"
+  relationshipDirection: "directional" | "bidirectional" // e.g., "directional" (parent-child), "bidirectional" (spouse-spouse)
+  status: "Active" | "Inactive"
+  createdDate?: string
+  createdBy?: string
+  effectiveDate: string
+  endDate?: string
+  notes?: string
+  registeredBy?: string
+  registeredDate?: string
+}
+
+export interface MembershipPerson {
   personId: string
+  membershipRole: "Primary" | "Dependent" | "Beneficiary"
+  coverageStartDate: string
+  coverageEndDate?: string
+  status: "Active" | "Inactive" | "Suspended"
+}
+
+export interface NormalizedMembership {
+  id: string
   membershipNo: string
-  idNo: string
-  personType: string
+  planName: string
+  planCode: string
+  effectiveDate: string
+  expiryDate: string
+  priority: string
+  companyId: string
   companyName: string
   companyCode: string
   policyNo: string
   status: string
-  groupId?: string
-  groupName?: string
+  primaryEmployeeId: string // The main employee who owns this membership
+  coveredPersons: MembershipPerson[] // All people covered under this membership
+  visitHistory: VisitRecord[]
+  utilization: UtilizationRecord[]
+  personJourney: JourneyRecord[]
+  bankInfo: BankInfo
+}
+
+export interface PersonProfile {
+  id: string
+  personId: string
+  name: string
+  idNo: string
+  idType: string
+  dateOfBirth?: Date | string
+  gender?: string
+  nationality?: string
+  status: string
+
+  // Passport specific fields
+  issuedCountry?: string
+  issueDate?: Date | string
+  expiryDate?: Date | string
+
+  // New additional fields
+  email?: string
+  phoneNo?: string
+  salutation?: string
+  addresses?: { streetAddress: string; postcode: string; city: string; state: string; country: string; type: string }[]
+
+  // New disability status fields
+  disabilityStatus?: string
+  specifyDisability?: string
+
+  // Health Info fields (added)
+  allergiesType?: string[] // e.g., ["Food", "Medicine"]
+  allergiesDetails?: Record<string, string> // e.g., { "Food": "Peanuts", "Medicine": "Penicillin" }
+  smoker?: boolean
+  alcoholConsumption?: boolean
+
+  // Audit fields
   dateCreated: string
   dateModified: string
   createdBy: string
   modifiedBy: string
-  employeeName?: string
-  employeeIdNo?: string
-  uploadBatchId?: string
-  // New required fields
-  dateOfBirth?: Date | string
-  gender?: string
-  nationality?: string
-  idType?: string
-  // New passport-specific fields
-  issuedCountry?: string
-  issueDate?: Date | string
-  expiryDate?: Date | string
+  // Added for sample data consistency
+  companyName?: string
+  companyCode?: string
+  policyNo?: string
+}
+
+export interface EmploymentRecord {
+  id: string
+  personId: string
+  companyId: string
+  companyName: string
+  companyCode: string
+  employeeId: string
+  department: string
+  position: string
+  jobGrade: string
+  joinDate: string
+  endDate?: string
+  employmentType: string
+  employmentStatus: string
+  reportingManagerId?: string
+  workLocation: string
+  salary?: string
+  benefits?: string[]
+  isActive: boolean
+}
+
+// Define the Membership interface
+export interface Membership {
+  no: number
+  membershipNo: string
+  planName: string
+  planCode: string
+  effectiveDate: string
+  expiryDate: string
+  personType: string
+  company: string
+  policyNo: string
+  priority: string // Add this new field
+  familyMembers: FamilyMember[]
+  visitHistory: VisitRecord[]
+  utilization: UtilizationRecord[]
+  personJourney: JourneyRecord[]
+  bankInfo: BankInfo
+}
+
+export interface FamilyMember {
+  name: string
+  idNo: string
+  personId: string
+  relationship: string
+  status: string
+}
+
+export interface VisitRecord {
+  date: string
+  provider: string
+  serviceType: string
+  amount: string
+  status: string
+}
+
+export interface UtilizationRecord {
+  serviceType: string
+  utilized: string
+  limit: string
+  remaining: string
+}
+
+export interface JourneyRecord {
+  date: string
+  event: string
+}
+
+export interface BankInfo {
+  bankName: string
+  accountNumber: string
+  accountHolder: string
+  branchCode: string
 }
 
 // Define the PersonGroup interface for bulk uploads
@@ -41,7 +189,7 @@ export interface PersonGroup {
   dateUpload: string
   uploadStatus: string
   uploadedBy: string
-  persons: Person[]
+  persons: PersonType[]
   companyName?: string
   companyCode?: string
   policyNo?: string
@@ -81,15 +229,382 @@ const PERSONS_STORAGE_KEY = "persons"
 const PERSON_GROUPS_STORAGE_KEY = "person_groups"
 const PERSON_COUNTER_KEY = "person_counter"
 const GROUP_COUNTER_KEY = "group_counter"
+const MEMBERSHIPS_STORAGE_KEY = "person_memberships"
+
+// Storage keys for new structures
+const RELATIONSHIPS_STORAGE_KEY = "person_relationships"
+const NORMALIZED_MEMBERSHIPS_STORAGE_KEY = "normalized_memberships"
+const EMPLOYMENT_RECORDS_STORAGE_KEY = "employment_records"
+
+// Helper to generate unique IDs
+const generateUniqueId = (prefix: string) => {
+  return `${prefix}-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`
+}
+
+// Simulate a database or local storage
+let personsData: PersonProfile[] = []
+let relationshipsData: PersonRelationship[] = []
+
+export const initializeSampleData = () => {
+  if (typeof window !== "undefined" && !localStorage.getItem(PERSONS_STORAGE_KEY)) {
+    const samplePersons: PersonProfile[] = [
+      {
+        id: "person-1",
+        name: "Ahmad Farid bin Abdullah",
+        personId: "PER-2025-123",
+        idNo: "88888888",
+        companyName: "Tech Solutions Inc.",
+        policyNo: "POL-TS-001",
+        status: "Active",
+        companyCode: "TS001",
+        dateOfBirth: "1988-05-10T00:00:00.000Z",
+        gender: "Male",
+        nationality: "Malaysian",
+        idType: "IC No.",
+        email: "ahmad.farid@example.com",
+        phoneNo: "+60123456789",
+        salutation: "Mr.",
+        addresses: [
+          {
+            streetAddress: "123 Jalan Bahagia",
+            postcode: "50000",
+            city: "Kuala Lumpur",
+            state: "Wilayah Persekutuan",
+            country: "Malaysia",
+            type: "Home",
+          },
+        ],
+        disabilityStatus: "No",
+        specifyDisability: "",
+        allergiesType: ["Food"], // Added sample data
+        allergiesDetails: { Food: "Seafood" }, // Added sample data
+        smoker: false, // Added sample data
+        alcoholConsumption: true, // Added sample data
+        dateCreated: new Date().toISOString(),
+        dateModified: new Date().toISOString(),
+        createdBy: "System",
+        modifiedBy: "System",
+      },
+      {
+        id: "person-458", // Changed from "person-2"
+        name: "Siti Aishah binti Hassan",
+        personId: "PER-2025-458", // Changed from "PER-2025-124"
+        idNo: "900101075000",
+        companyName: "Tech Solutions Inc.",
+        policyNo: "POL-TS-001",
+        status: "Active",
+        companyCode: "TS001",
+        dateOfBirth: "1990-01-01T00:00:00.000Z",
+        gender: "Female",
+        nationality: "Malaysian",
+        idType: "IC No.",
+        email: "siti.aishah@example.com",
+        phoneNo: "+60198765432",
+        salutation: "Mrs.",
+        addresses: [
+          {
+            streetAddress: "123 Jalan Bahagia",
+            postcode: "50000",
+            city: "Kuala Lumpur",
+            state: "Wilayah Persekutuan",
+            country: "Malaysia",
+            type: "Home",
+          },
+        ],
+        disabilityStatus: "No",
+        specifyDisability: "",
+        allergiesType: ["Medicine"], // Added sample data
+        allergiesDetails: { Medicine: "Aspirin" }, // Added sample data
+        smoker: false, // Added sample data
+        alcoholConsumption: false, // Added sample data
+        dateCreated: new Date().toISOString(),
+        dateModified: new Date().toISOString(),
+        createdBy: "System",
+        modifiedBy: "System",
+      },
+      {
+        id: "person-3",
+        name: "Ahmad Danial bin Ahmad Farid",
+        personId: "PER-2025-125",
+        idNo: "150303140000",
+        companyName: "Tech Solutions Inc.",
+        policyNo: "POL-TS-001",
+        status: "Active",
+        companyCode: "TS001",
+        dateOfBirth: "2015-03-03T00:00:00.000Z",
+        gender: "Male",
+        nationality: "Malaysian",
+        idType: "IC No.",
+        email: "",
+        phoneNo: "",
+        salutation: "Master",
+        addresses: [
+          {
+            streetAddress: "123 Jalan Bahagia",
+            postcode: "50000",
+            city: "Kuala Lumpur",
+            state: "Wilayah Persekutuan",
+            country: "Malaysia",
+            type: "Home",
+          },
+        ],
+        disabilityStatus: "No",
+        specifyDisability: "",
+        allergiesType: [],
+        allergiesDetails: {},
+        smoker: false,
+        alcoholConsumption: false,
+        dateCreated: new Date().toISOString(),
+        dateModified: new Date().toISOString(),
+        createdBy: "System",
+        modifiedBy: "System",
+      },
+      {
+        id: "person-4",
+        name: "Lim Wei Ling",
+        personId: "PER-2025-126",
+        idNo: "920415140000",
+        companyName: "Global Innovations Ltd.",
+        policyNo: "POL-GI-002",
+        status: "Active",
+        companyCode: "GI002",
+        dateOfBirth: "1992-04-15T00:00:00.000Z",
+        gender: "Female",
+        nationality: "Singaporean",
+        idType: "IC No.",
+        email: "wei.ling@example.com",
+        phoneNo: "+6591234567",
+        salutation: "Ms.",
+        addresses: [
+          {
+            streetAddress: "Unit 45, Orchard Road",
+            postcode: "238888",
+            city: "Singapore",
+            state: "",
+            country: "Singapore",
+            type: "Home",
+          },
+        ],
+        disabilityStatus: "No",
+        specifyDisability: "",
+        allergiesType: [],
+        allergiesDetails: {},
+        smoker: false,
+        alcoholConsumption: false,
+        dateCreated: new Date().toISOString(),
+        dateModified: new Date().toISOString(),
+        createdBy: "System",
+        modifiedBy: "System",
+      },
+      {
+        id: "person-5",
+        name: "John Doe",
+        personId: "PER-2025-127",
+        idNo: "A1234567",
+        companyName: "International Corp.",
+        policyNo: "POL-IC-003",
+        status: "Active",
+        companyCode: "IC003",
+        dateOfBirth: "1980-11-20T00:00:00.000Z",
+        gender: "Male",
+        nationality: "American",
+        idType: "Passport No.",
+        issuedCountry: "United States",
+        issueDate: "2020-01-01T00:00:00.000Z",
+        expiryDate: "2030-01-01T00:00:00.000Z",
+        email: "john.doe@example.com",
+        phoneNo: "+12125551234",
+        salutation: "Mr.",
+        addresses: [
+          {
+            streetAddress: "100 Main St",
+            postcode: "10001",
+            city: "New York",
+            state: "NY",
+            country: "United States",
+            type: "Work",
+          },
+        ],
+        disabilityStatus: "Yes",
+        specifyDisability: "Mobility impairment",
+        allergiesType: ["Others"],
+        allergiesDetails: { Others: "Dust" },
+        smoker: true,
+        alcoholConsumption: true,
+        dateCreated: new Date().toISOString(),
+        dateModified: new Date().toISOString(),
+        createdBy: "System",
+        modifiedBy: "System",
+      },
+      {
+        id: "person-6",
+        name: "Nur Aisyah binti Ahmad Farid",
+        personId: "PER-2025-460",
+        idNo: "140820-14-5678",
+        companyName: "Tech Solutions Inc.",
+        policyNo: "POL-TS-001",
+        status: "Active",
+        companyCode: "TS001",
+        dateOfBirth: "2014-08-20T00:00:00.000Z",
+        gender: "Female",
+        nationality: "Malaysian",
+        idType: "IC No.",
+        email: "",
+        phoneNo: "",
+        salutation: "Miss",
+        addresses: [
+          {
+            streetAddress: "123 Jalan Bahagia",
+            postcode: "50000",
+            city: "Kuala Lumpur",
+            state: "Wilayah Persekutuan",
+            country: "Malaysia",
+            type: "Home",
+          },
+        ],
+        disabilityStatus: "No",
+        specifyDisability: "",
+        allergiesType: [],
+        allergiesDetails: {},
+        smoker: false,
+        alcoholConsumption: false,
+        dateCreated: new Date().toISOString(),
+        dateModified: new Date().toISOString(),
+        createdBy: "System",
+        modifiedBy: "System",
+      },
+      {
+        id: "person-7",
+        name: "Ahmad Arif bin Ahmad Farid",
+        personId: "PER-2025-461",
+        idNo: "170612-14-9012",
+        companyName: "Tech Solutions Inc.",
+        policyNo: "POL-TS-001",
+        status: "Active",
+        companyCode: "TS001",
+        dateOfBirth: "2017-06-12T00:00:00.000Z",
+        gender: "Male",
+        nationality: "Malaysian",
+        idType: "IC No.",
+        email: "",
+        phoneNo: "",
+        salutation: "Master",
+        addresses: [
+          {
+            streetAddress: "123 Jalan Bahagia",
+            postcode: "50000",
+            city: "Kuala Lumpur",
+            state: "Wilayah Persekutuan",
+            country: "Malaysia",
+            type: "Home",
+          },
+        ],
+        disabilityStatus: "No",
+        specifyDisability: "",
+        allergiesType: [],
+        allergiesDetails: {},
+        smoker: false,
+        alcoholConsumption: false,
+        dateCreated: new Date().toISOString(),
+        dateModified: new Date().toISOString(),
+        createdBy: "System",
+        modifiedBy: "System",
+      },
+    ]
+
+    const sampleRelationships: PersonRelationship[] = [
+      {
+        id: "rel-1",
+        personId1: "person-1",
+        personId2: "person-458", // Changed from "person-2"
+        relationshipType: "Spouse",
+        relationshipDirection: "bidirectional",
+        status: "Active",
+        createdDate: new Date().toISOString(),
+        createdBy: "System",
+        effectiveDate: "2010-06-15",
+      },
+      {
+        id: "rel-2",
+        personId1: "person-1",
+        personId2: "person-3",
+        relationshipType: "Child",
+        relationshipDirection: "directional",
+        status: "Active",
+        createdDate: new Date().toISOString(),
+        createdBy: "System",
+        effectiveDate: "2015-03-03",
+      },
+      {
+        id: "rel-3",
+        personId1: "person-458", // Changed from "person-2"
+        personId2: "person-3",
+        relationshipType: "Child",
+        relationshipDirection: "directional",
+        status: "Active",
+        createdDate: new Date().toISOString(),
+        createdBy: "System",
+        effectiveDate: "2015-03-03",
+      },
+      {
+        id: "rel-4",
+        personId1: "person-1", // Ahmad Farid
+        personId2: "person-6", // Nur Aisyah
+        relationshipType: "Child",
+        relationshipDirection: "directional",
+        status: "Active",
+        createdDate: new Date().toISOString(),
+        createdBy: "System",
+        effectiveDate: "2014-08-20",
+      },
+      {
+        id: "rel-5",
+        personId1: "person-458", // Siti Aishah
+        personId2: "person-6", // Nur Aisyah
+        relationshipType: "Child",
+        relationshipDirection: "directional",
+        status: "Active",
+        createdDate: new Date().toISOString(),
+        createdBy: "System",
+        effectiveDate: "2014-08-20",
+      },
+      {
+        id: "rel-6",
+        personId1: "person-1", // Ahmad Farid
+        personId2: "person-7", // Ahmad Arif
+        relationshipType: "Child",
+        relationshipDirection: "directional",
+        status: "Active",
+        createdDate: new Date().toISOString(),
+        createdBy: "System",
+        effectiveDate: "2017-06-12",
+      },
+      {
+        id: "rel-7",
+        personId1: "person-458", // Siti Aishah
+        personId2: "person-7", // Ahmad Arif
+        relationshipType: "Child",
+        relationshipDirection: "directional",
+        status: "Active",
+        createdDate: new Date().toISOString(),
+        createdBy: "System",
+        effectiveDate: "2017-06-12",
+      },
+    ]
+
+    localStorage.setItem(PERSONS_STORAGE_KEY, JSON.stringify(samplePersons))
+    localStorage.setItem(RELATIONSHIPS_STORAGE_KEY, JSON.stringify(sampleRelationships))
+  }
+}
 
 // Function to get persons from local storage
-export const getPersons = (): Person[] => {
+export const getPersons = (): PersonProfile[] => {
   if (typeof window === "undefined") {
-    return []
+    return personsData
   }
 
   const personsJson = localStorage.getItem(PERSONS_STORAGE_KEY)
-  return personsJson ? JSON.parse(personsJson) : []
+  return personsJson ? JSON.parse(personsJson) : personsData
 }
 
 // Function to get person groups from local storage
@@ -102,8 +617,331 @@ export const getPersonGroups = (): PersonGroup[] => {
   return groupsJson ? JSON.parse(groupsJson) : []
 }
 
+// Function to get memberships from local storage
+export const getMemberships = (): { [personId: string]: Membership[] } => {
+  if (typeof window === "undefined") {
+    return {}
+  }
+
+  const membershipsJson = localStorage.getItem(MEMBERSHIPS_STORAGE_KEY)
+  return membershipsJson ? JSON.parse(membershipsJson) : {}
+}
+
+// Relationship management functions
+// Function to get person relationships from storage
+export const getPersonRelationships = (): PersonRelationship[] => {
+  if (typeof window === "undefined") return relationshipsData
+  const relationshipsJson = localStorage.getItem(RELATIONSHIPS_STORAGE_KEY)
+  return relationshipsJson ? JSON.parse(relationshipsJson) : relationshipsData
+}
+
+// Function to save person relationships to storage
+export const savePersonRelationships = (relationships: PersonRelationship[]) => {
+  if (typeof window === "undefined") return
+  localStorage.setItem(RELATIONSHIPS_STORAGE_KEY, JSON.stringify(relationships))
+}
+
+export const addPersonRelationship = (
+  relationship: Omit<PersonRelationship, "id" | "createdDate" | "createdBy">,
+): PersonRelationship => {
+  const relationships = getPersonRelationships()
+  const newRelationship: PersonRelationship = {
+    ...relationship,
+    id: `REL-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+    createdDate: new Date().toISOString(),
+    createdBy: "System User",
+  }
+
+  relationships.push(newRelationship)
+  savePersonRelationships(relationships)
+  return newRelationship
+}
+
+// Update the function to also handle directional relationships properly
+// Get family members for a person using the new relationship structure
+export const getPersonFamilyMembers = (personId: string): Array<{ person: PersonProfile; relationship: string }> => {
+  const relationships = getPersonRelationships()
+  const allPersons = getPersons()
+  const familyMembers: Array<{ person: PersonProfile; relationship: string }> = []
+
+  relationships.forEach((rel) => {
+    if (rel.status === "Active") {
+      if (rel.personId1 === personId) {
+        const relatedPerson = allPersons.find((p) => p.id === rel.personId2)
+        if (relatedPerson) {
+          familyMembers.push({
+            person: relatedPerson,
+            relationship: rel.relationshipType, // Show exact relationship as entered
+          })
+        }
+      } else if (rel.personId2 === personId) {
+        const relatedPerson = allPersons.find((p) => p.id === rel.personId1)
+        if (relatedPerson) {
+          // For directional relationships, we need to show the reverse
+          // For bidirectional relationships, show the reverse relationship
+          if (rel.relationshipDirection === "bidirectional") {
+            const reverseRelationship = getReverseRelationshipType(rel.relationshipType)
+            familyMembers.push({
+              person: relatedPerson,
+              relationship: reverseRelationship,
+            })
+          } else {
+            // For directional relationships, we need to determine what this person is to the primary person
+            // This requires storing both directions or computing the reverse
+            const reverseRelationship = getReverseRelationshipType(rel.relationshipType)
+            familyMembers.push({
+              person: relatedPerson,
+              relationship: reverseRelationship,
+            })
+          }
+        }
+      }
+    }
+  })
+
+  return familyMembers
+}
+
+// Enhanced function to get ALL family members (regardless of coverage)
+export const getAllPersonFamilyMembers = (
+  personId: string,
+): Array<{
+  person: PersonProfile
+  relationship: string
+  relationshipStatus: string
+  registeredDate: string
+  isCoveredInAnyPlan: boolean // Additional info but not filtering criteria
+}> => {
+  const relationships = getPersonRelationships()
+  const allPersons = getPersons()
+  const allMemberships = getNormalizedMemberships()
+  const familyMembers: Array<{
+    person: PersonProfile
+    relationship: string
+    relationshipStatus: string
+    registeredDate: string
+    isCoveredInAnyPlan: boolean
+  }> = []
+
+  relationships.forEach((rel) => {
+    // Include ALL relationships regardless of status (Active, Inactive, etc.)
+    // This ensures complete family history is maintained
+    if (rel.personId1 === personId) {
+      const relatedPerson = allPersons.find((p) => p.id === rel.personId2)
+      if (relatedPerson) {
+        // Check if this person is covered in any plan (for informational purposes only)
+        const isCovered = allMemberships.some((membership) =>
+          membership.coveredPersons.some((cp) => cp.personId === rel.personId2 && cp.status === "Active"),
+        )
+
+        familyMembers.push({
+          person: relatedPerson,
+          relationship: rel.relationshipType, // Show exact relationship as entered
+          relationshipStatus: rel.status,
+          registeredDate: rel.registeredDate,
+          isCoveredInAnyPlan: isCovered,
+        })
+      }
+    } else if (rel.personId2 === personId && rel.relationshipDirection === "bidirectional") {
+      const relatedPerson = allPersons.find((p) => p.id === rel.personId1)
+      if (relatedPerson) {
+        // Check if this person is covered in any plan (for informational purposes only)
+        const isCovered = allMemberships.some((membership) =>
+          membership.coveredPersons.some((cp) => cp.personId === rel.personId1 && cp.status === "Active"),
+        )
+
+        // For bidirectional relationships, show the reverse relationship
+        const reverseRelationship = getReverseRelationshipType(rel.relationshipType)
+        familyMembers.push({
+          person: relatedPerson,
+          relationship: reverseRelationship,
+          relationshipStatus: rel.status,
+          registeredDate: rel.registeredDate,
+          isCoveredInAnyPlan: isCovered,
+        })
+      }
+    }
+  })
+
+  return familyMembers
+}
+
+// Function to get ONLY family members covered in plans (for membership-specific views)
+export const getCoveredFamilyMembers = (
+  personId: string,
+): Array<{
+  person: PersonProfile
+  relationship: string
+  membershipNo: string
+  planName: string
+}> => {
+  const memberships = getPersonMembershipsNormalized(personId)
+  const allPersons = getPersons()
+  const relationships = getPersonRelationships()
+  const coveredMembers: Array<{
+    person: PersonProfile
+    relationship: string
+    membershipNo: string
+    planName: string
+  }> = []
+
+  memberships.forEach((membership) => {
+    membership.coveredPersons.forEach((coveredPerson) => {
+      if (coveredPerson.personId !== personId && coveredPerson.status === "Active") {
+        const person = allPersons.find((p) => p.id === coveredPerson.personId)
+        if (person) {
+          // Find the relationship
+          const relationship = relationships.find(
+            (rel) =>
+              (rel.personId1 === personId && rel.personId2 === coveredPerson.personId) ||
+              (rel.personId2 === personId &&
+                rel.personId1 === coveredPerson.personId &&
+                rel.relationshipDirection === "bidirectional"),
+          )
+
+          const relationshipType = relationship
+            ? relationship.personId1 === personId
+              ? relationship.relationshipType
+              : getReverseRelationshipType(relationship.relationshipType)
+            : "Unknown"
+
+          coveredMembers.push({
+            person,
+            relationship: relationshipType,
+            membershipNo: membership.membershipNo,
+            planName: membership.planName,
+          })
+        }
+      }
+    })
+  })
+
+  return coveredMembers
+}
+
+// Function to register a new family relationship (independent of any coverage)
+export const registerFamilyRelationship = (
+  personId1: string,
+  personId2: string,
+  relationshipType: string,
+  relationshipDirection: "bidirectional" | "directional" = "bidirectional",
+  notes?: string,
+): PersonRelationship => {
+  const relationships = getPersonRelationships()
+  const currentUser = "System User" // Replace with actual user context
+  const currentDate = new Date().toISOString()
+
+  const newRelationship: PersonRelationship = {
+    id: `REL-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+    personId1,
+    personId2,
+    relationshipType,
+    relationshipDirection,
+    status: "Active",
+    effectiveDate: currentDate,
+    notes,
+    registeredBy: currentUser,
+    registeredDate: currentDate,
+    createdBy: currentUser,
+    createdDate: currentDate,
+  }
+
+  relationships.push(newRelationship)
+  savePersonRelationships(relationships)
+  return newRelationship
+}
+
+// Function to update relationship status (e.g., divorce, death) without affecting coverage
+export const updateRelationshipStatus = (
+  relationshipId: string,
+  newStatus: "Active" | "Inactive" | "Divorced" | "Deceased",
+  endDate?: string,
+  notes?: string,
+): boolean => {
+  const relationships = getPersonRelationships()
+  const relationshipIndex = relationships.findIndex((rel) => rel.id === relationshipId)
+
+  if (relationshipIndex !== -1) {
+    relationships[relationshipIndex] = {
+      ...relationships[relationshipIndex],
+      status: newStatus,
+      endDate,
+      notes: notes || relationships[relationshipIndex].notes,
+    }
+    savePersonRelationships(relationships)
+    return true
+  }
+  return false
+}
+
+// Helper function to get reverse relationship types
+const getReverseRelationshipType = (relationshipType: string): string => {
+  const reverseMap: { [key: string]: string } = {
+    Spouse: "Spouse",
+    Parent: "Child",
+    Child: "Parent",
+    Sibling: "Sibling",
+    Father: "Child",
+    Mother: "Child",
+    Son: "Parent",
+    Daughter: "Parent",
+    Husband: "Wife",
+    Wife: "Husband",
+  }
+  return reverseMap[relationshipType] || relationshipType
+}
+
+// Employment management functions
+export const getEmploymentRecords = (): EmploymentRecord[] => {
+  if (typeof window === "undefined") return []
+  const employmentJson = localStorage.getItem(EMPLOYMENT_RECORDS_STORAGE_KEY)
+  return employmentJson ? JSON.parse(employmentJson) : []
+}
+
+export const getPersonEmployment = (personId: string): EmploymentRecord | null => {
+  const employmentRecords = getEmploymentRecords()
+  return employmentRecords.find((emp) => emp.personId === personId && emp.isActive) || null
+}
+
+// Normalized membership functions
+export const getNormalizedMemberships = (): NormalizedMembership[] => {
+  if (typeof window === "undefined") return []
+  const membershipsJson = localStorage.getItem(NORMALIZED_MEMBERSHIPS_STORAGE_KEY)
+  return membershipsJson ? JSON.parse(membershipsJson) : []
+}
+
+export const getPersonMembershipsNormalized = (personId: string): NormalizedMembership[] => {
+  const allMemberships = getNormalizedMemberships()
+  return allMemberships.filter(
+    (membership) =>
+      membership.primaryEmployeeId === personId ||
+      membership.coveredPersons.some((cp) => cp.personId === personId && cp.status === "Active"),
+  )
+}
+
+// Function to determine person type based on relationships and employment
+export const getPersonType = (personId: string): string => {
+  const employment = getPersonEmployment(personId)
+  if (employment) {
+    return "Employee"
+  }
+
+  // If not an employee, determine type from relationships
+  const familyMembers = getPersonFamilyMembers(personId)
+  const employeeRelation = familyMembers.find((fm) => {
+    const relatedEmployment = getPersonEmployment(fm.person.id)
+    return relatedEmployment !== null
+  })
+
+  if (employeeRelation) {
+    return employeeRelation.relationship
+  }
+
+  return "Individual"
+}
+
 // Function to save persons to local storage
-const savePersons = (persons: Person[]) => {
+const savePersons = (persons: PersonProfile[]) => {
   if (typeof window === "undefined") {
     return
   }
@@ -118,6 +956,28 @@ const savePersonGroups = (groups: PersonGroup[]) => {
   }
 
   localStorage.setItem(PERSON_GROUPS_STORAGE_KEY, JSON.stringify(groups))
+}
+
+// Function to save memberships to local storage
+const saveMemberships = (memberships: { [personId: string]: Membership[] }) => {
+  if (typeof window === "undefined") {
+    return
+  }
+
+  localStorage.setItem(MEMBERSHIPS_STORAGE_KEY, JSON.stringify(memberships))
+}
+
+// Function to get memberships for a specific person
+export const getPersonMemberships = (personId: string): Membership[] => {
+  const allMemberships = getMemberships()
+  return allMemberships[personId] || []
+}
+
+// Function to set memberships for a specific person
+export const setPersonMemberships = (personId: string, memberships: Membership[]): void => {
+  const allMemberships = getMemberships()
+  allMemberships[personId] = memberships
+  saveMemberships(allMemberships)
 }
 
 // Function to get next person ID
@@ -146,13 +1006,13 @@ const getNextGroupId = (): string => {
 
 // Function to add a new person (single entry)
 export const addPerson = (
-  personData: Omit<Person, "id" | "dateCreated" | "dateModified" | "createdBy" | "modifiedBy">,
-): Person => {
+  personData: Omit<PersonProfile, "id" | "dateCreated" | "dateModified" | "createdBy" | "modifiedBy">,
+): PersonProfile => {
   const persons = getPersons()
   const currentDate = new Date().toISOString()
   const currentUser = "System User" // This could be replaced with actual user context
 
-  const newPerson: Person = {
+  const newPerson: PersonProfile = {
     ...personData,
     id: getNextPersonId(),
     dateCreated: currentDate,
@@ -163,6 +1023,8 @@ export const addPerson = (
     dateOfBirth: personData.dateOfBirth instanceof Date ? personData.dateOfBirth.toISOString() : personData.dateOfBirth,
     issueDate: personData.issueDate instanceof Date ? personData.issueDate.toISOString() : personData.issueDate,
     expiryDate: personData.expiryDate instanceof Date ? personData.expiryDate.toISOString() : personData.expiryDate,
+    // Ensure addresses are stored correctly
+    addresses: personData.addresses || [],
   }
 
   persons.push(newPerson)
@@ -174,10 +1036,7 @@ export const addPerson = (
 // Function to add bulk persons
 export const addBulkPersons = (
   groupData: Omit<PersonGroup, "id" | "groupId" | "totalRecords" | "persons">,
-  personsData: Omit<
-    Person,
-    "id" | "dateCreated" | "dateModified" | "createdBy" | "modifiedBy" | "groupId" | "groupName" | "uploadBatchId"
-  >[],
+  personsData: Omit<PersonProfile, "id" | "dateCreated" | "dateModified" | "createdBy" | "modifiedBy">[],
 ): PersonGroup => {
   const persons = getPersons()
   const groups = getPersonGroups()
@@ -187,21 +1046,40 @@ export const addBulkPersons = (
   const uploadBatchId = `BATCH_${Date.now()}`
 
   // Create new persons with group information
-  const newPersons: Person[] = personsData.map((personData) => ({
-    ...personData,
-    id: getNextPersonId(),
-    groupId: groupId,
-    groupName: groupData.groupName,
-    uploadBatchId: uploadBatchId,
-    dateCreated: currentDate,
-    dateModified: currentDate,
-    createdBy: currentUser,
-    modifiedBy: currentUser,
-    // Ensure date fields are stored as ISO strings for consistency
-    dateOfBirth: personData.dateOfBirth instanceof Date ? personData.dateOfBirth.toISOString() : personData.dateOfBirth,
-    issueDate: personData.issueDate instanceof Date ? personData.issueDate.toISOString() : personData.issueDate,
-    expiryDate: personData.expiryDate instanceof Date ? personData.expiryDate.toISOString() : personData.expiryDate,
-  }))
+  const newPersons: PersonProfile[] = personsData.map((personData, index) => {
+    // Generate Person ID using the same pattern as single entry
+    const persons = getPersons()
+    const timestamp = Date.now()
+    let maxPerNumber = 0
+    persons.forEach((person) => {
+      if (person.personId && person.personId.startsWith("PER-2025-")) {
+        const perNumber = Number.parseInt(person.personId.split("-")[2])
+        if (!isNaN(perNumber) && perNumber > maxPerNumber) {
+          maxPerNumber = perNumber
+        }
+      }
+    })
+    // Add index to ensure uniqueness within the batch
+    const uniqueNumber = maxPerNumber + 1 + index + Math.floor(timestamp % 1000)
+    const generatedPersonId = `PER-2025-${uniqueNumber.toString().padStart(3, "0")}`
+
+    return {
+      ...personData,
+      id: getNextPersonId(),
+      personId: generatedPersonId, // Use consistent pattern
+      dateCreated: currentDate,
+      dateModified: currentDate,
+      createdBy: currentUser,
+      modifiedBy: currentUser,
+      // Ensure date fields are stored as ISO strings for consistency
+      dateOfBirth:
+        personData.dateOfBirth instanceof Date ? personData.dateOfBirth.toISOString() : personData.dateOfBirth,
+      issueDate: personData.issueDate instanceof Date ? personData.issueDate.toISOString() : personData.issueDate,
+      expiryDate: personData.expiryDate instanceof Date ? personData.expiryDate.toISOString() : personData.expiryDate,
+      // Ensure addresses are stored correctly
+      addresses: personData.addresses || [],
+    }
+  })
 
   // Create new group
   const newGroup: PersonGroup = {
@@ -222,7 +1100,7 @@ export const addBulkPersons = (
 }
 
 // Function to update an existing person
-export const updatePerson = (personId: string, updates: Partial<Person>): Person | null => {
+export const updatePerson = (personId: string, updates: Partial<PersonProfile>): PersonProfile | null => {
   const persons = getPersons()
   const index = persons.findIndex((p) => p.id === personId)
 
@@ -235,6 +1113,37 @@ export const updatePerson = (personId: string, updates: Partial<Person>): Person
       ...updates,
       dateModified: currentDate,
       modifiedBy: currentUser,
+    }
+
+    savePersons(persons)
+    return persons[index]
+  }
+
+  return null
+}
+
+// Function to update person profile with enhanced validation
+export const updatePersonProfile = (personId: string, updates: Partial<PersonProfile>): PersonProfile | null => {
+  const persons = getPersons()
+  const index = persons.findIndex((p) => p.id === personId)
+
+  if (index !== -1) {
+    const currentDate = new Date().toISOString()
+    const currentUser = "System User" // This could be replaced with actual user context
+
+    // Ensure date fields are properly formatted
+    const formattedUpdates = {
+      ...updates,
+      dateOfBirth: updates.dateOfBirth instanceof Date ? updates.dateOfBirth.toISOString() : updates.dateOfBirth,
+      issueDate: updates.issueDate instanceof Date ? updates.issueDate.toISOString() : updates.issueDate,
+      expiryDate: updates.expiryDate instanceof Date ? updates.expiryDate.toISOString() : updates.expiryDate,
+      dateModified: currentDate,
+      modifiedBy: currentUser,
+    }
+
+    persons[index] = {
+      ...persons[index],
+      ...formattedUpdates,
     }
 
     savePersons(persons)
@@ -279,13 +1188,13 @@ const updateGroupTotalRecords = (groupId: string) => {
 }
 
 // Function to get a person by ID
-export const getPersonById = (personId: string): Person | null => {
+export const getPersonById = (personId: string): PersonProfile | null => {
   const persons = getPersons()
   return persons.find((p) => p.id === personId) || null
 }
 
 // Function to get persons by group ID
-export const getPersonsByGroupId = (groupId: string): Person[] => {
+export const getPersonsByGroupId = (groupId: string): PersonProfile[] => {
   const persons = getPersons()
   return persons.filter((p) => p.groupId === groupId)
 }
@@ -297,7 +1206,7 @@ export const getGroupById = (groupId: string): PersonGroup | null => {
 }
 
 // Function to search persons (single view)
-export const searchPersons = (criteria: PersonSearchCriteria): Person[] => {
+export const searchPersons = (criteria: PersonSearchCriteria): PersonProfile[] => {
   const persons = getPersons()
 
   return persons.filter((person) => {
@@ -322,23 +1231,23 @@ export const searchPersons = (criteria: PersonSearchCriteria): Person[] => {
     }
 
     // Match person type (exact match)
-    if (
-      criteria.personType &&
-      criteria.personType !== "all" &&
-      person.personType.toLowerCase() !== criteria.personType.toLowerCase()
-    ) {
-      return false
-    }
+    // if (
+    //   criteria.personType &&
+    //   criteria.personType !== "all" &&
+    //   person.personType.toLowerCase() !== criteria.personType.toLowerCase()
+    // ) {
+    //   return false
+    // }
 
     // Match company name (case-insensitive partial match)
-    if (criteria.companyName && !person.companyName.toLowerCase().includes(criteria.companyName.toLowerCase())) {
-      return false
-    }
+    // if (criteria.companyName && !person.companyName.toLowerCase().includes(criteria.companyName.toLowerCase())) {
+    //   return false
+    // }
 
     // Match policy number (case-insensitive partial match)
-    if (criteria.policyNo && !person.policyNo.toLowerCase().includes(criteria.policyNo.toLowerCase())) {
-      return false
-    }
+    // if (criteria.policyNo && !person.policyNo.toLowerCase().includes(criteria.policyNo.toLowerCase())) {
+    //   return false
+    // }
 
     // Match status (exact match)
     if (criteria.status && criteria.status !== "all" && person.status.toLowerCase() !== criteria.status.toLowerCase()) {
@@ -371,69 +1280,21 @@ export const searchPersonGroups = (criteria: BulkSearchCriteria): PersonGroup[] 
 
   return groups.filter((group) => {
     // Match group ID (case-insensitive partial match)
-    if (criteria.groupId && !group.groupId.toLowerCase().includes(criteria.groupId.toLowerCase())) {
+    if (
+      criteria.groupId &&
+      criteria.groupId.trim() &&
+      !group.groupId.toLowerCase().includes(criteria.groupId.toLowerCase())
+    ) {
       return false
     }
 
     // Match group name (case-insensitive partial match)
-    if (criteria.groupName && !group.groupName.toLowerCase().includes(criteria.groupName.toLowerCase())) {
-      return false
-    }
-
-    // For other criteria, check if any person in the group matches
     if (
-      criteria.membershipNo ||
-      criteria.personType ||
-      criteria.companyName ||
-      criteria.policyNo ||
-      criteria.status ||
-      !criteria.includeInactive
+      criteria.groupName &&
+      criteria.groupName.trim() &&
+      !group.groupName.toLowerCase().includes(criteria.groupName.toLowerCase())
     ) {
-      const matchingPersons = group.persons.filter((person) => {
-        // Match membership number
-        if (criteria.membershipNo && !person.membershipNo.toLowerCase().includes(criteria.membershipNo.toLowerCase())) {
-          return false
-        }
-
-        // Match person type
-        if (
-          criteria.personType &&
-          criteria.personType !== "all" &&
-          person.personType.toLowerCase() !== criteria.personType.toLowerCase()
-        ) {
-          return false
-        }
-
-        // Match company name
-        if (criteria.companyName && !person.companyName.toLowerCase().includes(criteria.companyName.toLowerCase())) {
-          return false
-        }
-
-        // Match policy number
-        if (criteria.policyNo && !person.policyNo.toLowerCase().includes(criteria.policyNo.toLowerCase())) {
-          return false
-        }
-
-        // Match status
-        if (
-          criteria.status &&
-          criteria.status !== "all" &&
-          person.status.toLowerCase() !== criteria.status.toLowerCase()
-        ) {
-          return false
-        }
-
-        // Include inactive records check
-        if (!criteria.includeInactive && person.status === "Inactive") {
-          return false
-        }
-
-        return true
-      })
-
-      if (matchingPersons.length === 0) {
-        return false
-      }
+      return false
     }
 
     // Date range check
@@ -461,499 +1322,145 @@ export const clearPersons = () => {
   localStorage.removeItem(PERSON_GROUPS_STORAGE_KEY)
   localStorage.removeItem(PERSON_COUNTER_KEY)
   localStorage.removeItem(GROUP_COUNTER_KEY)
+  localStorage.removeItem(MEMBERSHIPS_STORAGE_KEY)
+  localStorage.removeItem(RELATIONSHIPS_STORAGE_KEY)
+  localStorage.removeItem(NORMALIZED_MEMBERSHIPS_STORAGE_KEY)
+  localStorage.removeItem(EMPLOYMENT_RECORDS_STORAGE_KEY)
 }
 
-// Function to initialize with sample data
-export const initializeSampleData = () => {
+// Migration function to convert existing data to new structure
+export const migrateToNewStructure = () => {
   const existingPersons = getPersons()
-  const existingGroups = getPersonGroups()
+  const relationships: PersonRelationship[] = []
+  const employmentRecords: EmploymentRecord[] = []
 
-  // Only initialize if no data exists
-  if (existingPersons.length === 0 && existingGroups.length === 0) {
-    // Sample single persons with real Malaysian names - Updated Ahmad Farid with passport info
-    const samplePersons: Omit<Person, "id" | "dateCreated" | "dateModified" | "createdBy" | "modifiedBy">[] = [
-      {
-        name: "Ahmad Farid bin Abdullah",
-        personId: "PER-2025-457",
-        membershipNo: "MEM-IND-001",
-        idNo: "A12345678",
-        personType: "Employee",
-        companyName: "Individual Corp",
-        companyCode: "IND01",
-        policyNo: "POL-IND-001",
-        status: "Active",
-        dateOfBirth: new Date("1985-01-01").toISOString(),
-        gender: "Male",
-        nationality: "Malaysian",
-        idType: "Passport No.",
-        issuedCountry: "Malaysia",
-        issueDate: new Date("2020-03-15").toISOString(),
-        expiryDate: new Date("2030-03-14").toISOString(),
-      },
-      // Ahmad Farid's Wife
-      {
-        name: "Siti Aishah binti Ahmad",
-        personId: "PER-2025-458",
-        membershipNo: "MEM-IND-002",
-        idNo: "870505-14-5678",
-        personType: "Wife",
-        companyName: "Individual Corp",
-        companyCode: "IND01",
-        policyNo: "POL-IND-001",
-        status: "Active",
-        employeeName: "Ahmad Farid bin Abdullah",
-        employeeIdNo: "A12345678",
-        dateOfBirth: new Date("1987-05-05").toISOString(),
-        gender: "Female",
-        nationality: "Malaysian",
-        idType: "IC No.",
-      },
-      // Ahmad Farid's First Child
-      {
-        name: "Ahmad Danial bin Ahmad Farid",
-        personId: "PER-2025-459",
-        membershipNo: "MEM-IND-003",
-        idNo: "120315-14-1234",
-        personType: "Child",
-        companyName: "Individual Corp",
-        companyCode: "IND01",
-        policyNo: "POL-IND-001",
-        status: "Active",
-        employeeName: "Ahmad Farid bin Abdullah",
-        employeeIdNo: "A12345678",
-        dateOfBirth: new Date("2012-03-15").toISOString(),
-        gender: "Male",
-        nationality: "Malaysian",
-        idType: "IC No.",
-      },
-      // Ahmad Farid's Second Child
-      {
-        name: "Nur Aisyah binti Ahmad Farid",
-        personId: "PER-2025-460",
-        membershipNo: "MEM-IND-004",
-        idNo: "140820-14-5678",
-        personType: "Child",
-        companyName: "Individual Corp",
-        companyCode: "IND01",
-        policyNo: "POL-IND-001",
-        status: "Active",
-        employeeName: "Ahmad Farid bin Abdullah",
-        employeeIdNo: "A12345678",
-        dateOfBirth: new Date("2014-08-20").toISOString(),
-        gender: "Female",
-        nationality: "Malaysian",
-        idType: "IC No.",
-      },
-      // Ahmad Farid's Third Child
-      {
-        name: "Ahmad Arif bin Ahmad Farid",
-        personId: "PER-2025-461",
-        membershipNo: "MEM-IND-005",
-        idNo: "170612-14-9012",
-        personType: "Child",
-        companyName: "Individual Corp",
-        companyCode: "IND01",
-        policyNo: "POL-IND-001",
-        status: "Active",
-        employeeName: "Ahmad Farid bin Abdullah",
-        employeeIdNo: "A12345678",
-        dateOfBirth: new Date("2017-06-12").toISOString(),
-        gender: "Male",
-        nationality: "Malaysian",
-        idType: "IC No.",
-      },
+  existingPersons.forEach((person) => {
+    // Create employment records for employees
+    if (person.personType === "Employee") {
+      const employmentRecord: EmploymentRecord = {
+        id: `EMP-${person.id}`,
+        personId: person.id,
+        companyId: `COMP-${person.companyCode}`,
+        companyName: person.companyName,
+        companyCode: person.companyCode,
+        employeeId: person.personId,
+        department: "Unknown", // Would need to be filled in
+        position: "Unknown", // Would need to be filled in
+        jobGrade: "Unknown", // Would need to be filled in
+        joinDate: person.dateCreated,
+        employmentType: "Full Time",
+        employmentStatus: person.status,
+        workLocation: "Unknown", // Would need to be filled in
+        isActive: person.status === "Active",
+      }
+      employmentRecords.push(employmentRecord)
+    }
 
-      // 10 NEW COMPLETE DUMMY RECORDS
-      // Record 1 - Employee with Passport
-      {
-        name: "Mohd Zulkifli bin Hassan",
-        personId: "PER-2025-501",
-        membershipNo: "MEM-ZUL-001",
-        idNo: "P78901234",
-        personType: "Employee",
-        companyName: "Tech Innovations Sdn Bhd",
-        companyCode: "TECH01",
-        policyNo: "POL-TECH-001",
-        status: "Active",
-        dateOfBirth: new Date("1982-07-15").toISOString(),
-        gender: "Male",
-        nationality: "Malaysian",
-        idType: "Passport No.",
-        issuedCountry: "Malaysia",
-        issueDate: new Date("2022-05-10").toISOString(),
-        expiryDate: new Date("2032-05-09").toISOString(),
-      },
-      // Record 2 - Spouse with IC
-      {
-        name: "Noraini binti Ismail",
-        personId: "PER-2025-502",
-        membershipNo: "MEM-ZUL-002",
-        idNo: "840923-14-5522",
-        personType: "Wife",
-        companyName: "Tech Innovations Sdn Bhd",
-        companyCode: "TECH01",
-        policyNo: "POL-TECH-001",
-        status: "Active",
-        employeeName: "Mohd Zulkifli bin Hassan",
-        employeeIdNo: "P78901234",
-        dateOfBirth: new Date("1984-09-23").toISOString(),
-        gender: "Female",
-        nationality: "Malaysian",
-        idType: "IC No.",
-      },
-      // Record 3 - Child with IC
-      {
-        name: "Nur Amira binti Mohd Zulkifli",
-        personId: "PER-2025-503",
-        membershipNo: "MEM-ZUL-003",
-        idNo: "100712-14-6644",
-        personType: "Child",
-        companyName: "Tech Innovations Sdn Bhd",
-        companyCode: "TECH01",
-        policyNo: "POL-TECH-001",
-        status: "Active",
-        employeeName: "Mohd Zulkifli bin Hassan",
-        employeeIdNo: "P78901234",
-        dateOfBirth: new Date("2010-07-12").toISOString(),
-        gender: "Female",
-        nationality: "Malaysian",
-        idType: "IC No.",
-      },
-      // Record 4 - Employee with IC
-      {
-        name: "Tan Wei Ling",
-        personId: "PER-2025-504",
-        membershipNo: "MEM-TWL-001",
-        idNo: "880405-10-5566",
-        personType: "Employee",
-        companyName: "Global Finance Group",
-        companyCode: "GFG01",
-        policyNo: "POL-GFG-001",
-        status: "Active",
-        dateOfBirth: new Date("1988-04-05").toISOString(),
-        gender: "Female",
-        nationality: "Malaysian",
-        idType: "IC No.",
-      },
-      // Record 5 - Spouse with Passport
-      {
-        name: "David Chen Jian Wei",
-        personId: "PER-2025-505",
-        membershipNo: "MEM-TWL-002",
-        idNo: "S9876543Z",
-        personType: "Husband",
-        companyName: "Global Finance Group",
-        companyCode: "GFG01",
-        policyNo: "POL-GFG-001",
-        status: "Active",
-        employeeName: "Tan Wei Ling",
-        employeeIdNo: "880405-10-5566",
-        dateOfBirth: new Date("1986-11-20").toISOString(),
-        gender: "Male",
-        nationality: "Singapore",
-        idType: "Passport No.",
-        issuedCountry: "Singapore",
-        issueDate: new Date("2021-08-15").toISOString(),
-        expiryDate: new Date("2031-08-14").toISOString(),
-      },
-      // Record 6 - Employee with IC
-      {
-        name: "Rajendran a/l Subramaniam",
-        personId: "PER-2025-506",
-        membershipNo: "MEM-RAJ-001",
-        idNo: "790215-08-7788",
-        personType: "Employee",
-        companyName: "Healthcare Solutions Bhd",
-        companyCode: "HSB01",
-        policyNo: "POL-HSB-001",
-        status: "Active",
-        dateOfBirth: new Date("1979-02-15").toISOString(),
-        gender: "Male",
-        nationality: "Malaysian",
-        idType: "IC No.",
-      },
-      // Record 7 - Spouse with IC
-      {
-        name: "Lakshmi a/p Govindasamy",
-        personId: "PER-2025-507",
-        membershipNo: "MEM-RAJ-002",
-        idNo: "810630-08-5544",
-        personType: "Wife",
-        companyName: "Healthcare Solutions Bhd",
-        companyCode: "HSB01",
-        policyNo: "POL-HSB-001",
-        status: "Active",
-        employeeName: "Rajendran a/l Subramaniam",
-        employeeIdNo: "790215-08-7788",
-        dateOfBirth: new Date("1981-06-30").toISOString(),
-        gender: "Female",
-        nationality: "Malaysian",
-        idType: "IC No.",
-      },
-      // Record 8 - Employee with Passport (Foreign)
-      {
-        name: "Hiroshi Tanaka",
-        personId: "PER-2025-508",
-        membershipNo: "MEM-HIR-001",
-        idNo: "TK8765432",
-        personType: "Employee",
-        companyName: "Eastern Manufacturing Co.",
-        companyCode: "EMC01",
-        policyNo: "POL-EMC-001",
-        status: "Active",
-        dateOfBirth: new Date("1975-09-18").toISOString(),
-        gender: "Male",
-        nationality: "Japanese",
-        idType: "Passport No.",
-        issuedCountry: "Japan",
-        issueDate: new Date("2023-01-05").toISOString(),
-        expiryDate: new Date("2033-01-04").toISOString(),
-      },
-      // Record 9 - Employee with IC (Inactive)
-      {
-        name: "Wong Mei Ling",
-        personId: "PER-2025-509",
-        membershipNo: "MEM-WML-001",
-        idNo: "920708-14-3322",
-        personType: "Employee",
-        companyName: "Creative Design Studio",
-        companyCode: "CDS01",
-        policyNo: "POL-CDS-001",
-        status: "Inactive",
-        dateOfBirth: new Date("1992-07-08").toISOString(),
-        gender: "Female",
-        nationality: "Malaysian",
-        idType: "IC No.",
-      },
-      // Record 10 - Employee with Passport (Suspended)
-      {
-        name: "John William Smith",
-        personId: "PER-2025-510",
-        membershipNo: "MEM-JWS-001",
-        idNo: "A55667788",
-        personType: "Employee",
-        companyName: "International Consulting Group",
-        companyCode: "ICG01",
-        policyNo: "POL-ICG-001",
-        status: "Suspended",
-        dateOfBirth: new Date("1980-12-25").toISOString(),
-        gender: "Male",
-        nationality: "British",
-        idType: "Passport No.",
-        issuedCountry: "United Kingdom",
-        issueDate: new Date("2019-11-30").toISOString(),
-        expiryDate: new Date("2029-11-29").toISOString(),
-      },
-    ]
+    // Create relationships for dependents
+    // This logic needs to be adapted if person.employeeIdNo and person.employeeName are no longer directly on PersonProfile
+    // For now, assuming they might still exist for migration purposes or are derived.
+    // If they are removed, this part of migration would need to be re-evaluated based on how dependents are linked.
+    // if (person.employeeIdNo && person.employeeName) {
+    //   const employee = existingPersons.find((p) => p.idNo === person.employeeIdNo)
+    //   if (employee) {
+    //     const relationship: PersonRelationship = {
+    //       id: `REL-${person.id}-${employee.id}`,
+    //       personId1: employee.id,
+    //       personId2: person.id,
+    //       relationshipType: person.personType, // This might need mapping, e.g., "Dependent" -> "Child" or "Spouse"
+    //       relationshipDirection: "directional",
+    //       status: "Active",
+    //       effectiveDate: person.dateCreated,
+    //       createdBy: person.createdBy,
+    //       createdDate: person.dateCreated,
+    //     }
+    //     relationships.push(relationship)
+    //   }
+    // }
+  })
 
-    // Add sample single persons
-    samplePersons.forEach((personData) => {
-      addPerson(personData)
-    })
+  // Save migrated data
+  savePersonRelationships(relationships)
+  localStorage.setItem(EMPLOYMENT_RECORDS_STORAGE_KEY, JSON.stringify(employmentRecords))
+}
 
-    // Add test record for passport matching functionality
-    const testMatchRecord: Omit<Person, "id" | "dateCreated" | "dateModified" | "createdBy" | "modifiedBy">[] = [
-      {
-        name: "Osas",
-        personId: "PER-2025-123",
-        membershipNo: "MEM-OSA-001",
-        idNo: "A1234567",
-        personType: "Employee",
-        companyName: "Test Company",
-        companyCode: "TST01",
-        policyNo: "POL-TEST-001",
-        status: "Active",
-        dateOfBirth: new Date("2025-05-01").toISOString(), // 01/05/2025
-        gender: "Male",
-        nationality: "Thailand",
-        idType: "Passport No.",
-        issuedCountry: "Thailand",
-        issueDate: new Date("2020-01-01").toISOString(),
-        expiryDate: new Date("2030-01-01").toISOString(),
-      },
-    ]
+export interface Person {
+  id: string
+  name: string
+  personId: string
+  membershipNo?: string // Made optional as not all persons might have it
+  idNo: string
+  companyName?: string // Made optional
+  companyCode?: string // Made optional
+  policyNo?: string // Made optional
+  status: string
+  groupId?: string
+  groupName?: string
+  dateCreated: string
+  dateModified: string
+  createdBy: string
+  modifiedBy: string
+  dateOfBirth?: Date | string
+  gender?: string
+  nationality?: string
+  idType?: string
+  issuedCountry?: string
+  issueDate?: Date | string
+  expiryDate?: Date | string
+  addresses?: { streetAddress: string; postcode: string; city: string; state: string; country: string; type: string }[]
+  email?: string
+  phoneNo?: string
+  salutation?: string
+  disabilityStatus?: string
+  specifyDisability?: string
+  allergiesType?: string[] // e.g., ["Food", "Medicine"]
+  allergiesDetails?: Record<string, string> // e.g., { "Food": "Peanuts", "Medicine": "Penicillin" }
+  smoker?: boolean
+  alcoholConsumption?: boolean
+}
 
-    // Add the test record
-    testMatchRecord.forEach((personData) => {
-      addPerson(personData)
-    })
+export const getRelationshipsForPerson = (personId: string): PersonRelationship[] => {
+  return relationshipsData.filter((rel) => rel.personId1 === personId || rel.personId2 === personId)
+}
 
-    // Add additional dummy person with complete passport information
-    const additionalDummyPerson: Omit<Person, "id" | "dateCreated" | "dateModified" | "createdBy" | "modifiedBy">[] = [
-      {
-        name: "Sarah Michelle Johnson",
-        personId: "PER-2025-456",
-        membershipNo: "MEM-SMJ-002",
-        idNo: "B9876543",
-        personType: "Employee",
-        companyName: "Global Tech Solutions",
-        companyCode: "GTS01",
-        policyNo: "POL-GTS-002",
-        status: "Active",
-        dateOfBirth: new Date("1990-03-15").toISOString(), // 15/03/1990
-        gender: "Female",
-        nationality: "United States",
-        idType: "Passport No.",
-        issuedCountry: "United States",
-        issueDate: new Date("2019-06-10").toISOString(),
-        expiryDate: new Date("2029-06-10").toISOString(),
-      },
-    ]
-
-    // Add the additional dummy person
-    additionalDummyPerson.forEach((personData) => {
-      addPerson(personData)
-    })
-
-    // Sample bulk data for PMCare Group with real Malaysian names
-    const pmcarePersons: Omit<
-      Person,
-      "id" | "dateCreated" | "dateModified" | "createdBy" | "modifiedBy" | "groupId" | "groupName" | "uploadBatchId"
-    >[] = [
-      {
-        name: "Siti Nurhaliza binti Hassan",
-        personId: "PMC002",
-        membershipNo: "CM-PMC-002-I",
-        idNo: "850102-14-1001",
-        personType: "Employee",
-        companyName: "PMCare Sdn. Bhd",
-        companyCode: "PMC01",
-        policyNo: "XY123",
-        status: "Active",
-      },
-      {
-        name: "Lim Wei Ming",
-        personId: "PMC003",
-        membershipNo: "CM-PMC-003-I",
-        idNo: "850103-14-1002",
-        personType: "Employee",
-        companyName: "PMCare Sdn. Bhd",
-        companyCode: "PMC01",
-        policyNo: "XY123",
-        status: "Active",
-      },
-      {
-        name: "Rajesh Kumar a/l Subramaniam",
-        personId: "PMC004",
-        membershipNo: "CM-PMC-004-I",
-        idNo: "850104-14-1003",
-        personType: "Dependent",
-        companyName: "PMCare Sdn. Bhd",
-        companyCode: "PMC01",
-        policyNo: "XY123",
-        status: "Active",
-        employeeName: "Siti Nurhaliza binti Hassan",
-        employeeIdNo: "850102-14-1001",
-      },
-      {
-        name: "Nurul Aina binti Mohd Razak",
-        personId: "PMC005",
-        membershipNo: "CM-PMC-005-I",
-        idNo: "850105-14-1004",
-        personType: "Employee",
-        companyName: "PMCare Sdn. Bhd",
-        companyCode: "PMC01",
-        policyNo: "XY123",
-        status: "Active",
-      },
-      {
-        name: "Tan Chee Keong",
-        personId: "PMC006",
-        membershipNo: "CM-PMC-006-I",
-        idNo: "850106-14-1005",
-        personType: "Employee",
-        companyName: "PMCare Sdn. Bhd",
-        companyCode: "PMC01",
-        policyNo: "XY123",
-        status: "Active",
-      },
-      {
-        name: "Fatimah binti Omar",
-        personId: "PMC007",
-        membershipNo: "CM-PMC-007-I",
-        idNo: "850107-14-1006",
-        personType: "Dependent",
-        companyName: "PMCare Sdn. Bhd",
-        companyCode: "PMC01",
-        policyNo: "XY123",
-        status: "Active",
-        employeeName: "Tan Chee Keong",
-        employeeIdNo: "850106-14-1005",
-      },
-      // Add more sample persons to reach 25 total
-      ...Array.from({ length: 18 }, (_, i) => ({
-        name: `PMCare Employee ${i + 8}`,
-        personId: `PMC${(i + 8).toString().padStart(3, "0")}`,
-        membershipNo: `CM-PMC-${(i + 8).toString().padStart(3, "0")}-I`,
-        idNo: `${(850108 + i).toString()}-14-${(1007 + i).toString()}`,
-        personType: i % 3 === 0 ? "Dependent" : "Employee",
-        companyName: "PMCare Sdn. Bhd",
-        companyCode: "PMC01",
-        policyNo: "XY123",
-        status: i % 10 === 0 ? "Inactive" : "Active",
-      })),
-    ]
-
-    addBulkPersons(
-      {
-        groupName: "PMCare Group",
-        dateUpload: "2024-01-15",
-        uploadStatus: "Complete",
-        uploadedBy: "System Admin",
-      },
-      pmcarePersons,
-    )
-
-    // Sample bulk data for Global Holdings Group
-    const globalPersons: Omit<
-      Person,
-      "id" | "dateCreated" | "dateModified" | "createdBy" | "modifiedBy" | "groupId" | "groupName" | "uploadBatchId"
-    >[] = Array.from({ length: 42 }, (_, i) => ({
-      name: `Global Employee ${i + 1}`,
-      personId: `GCH${(i + 1).toString().padStart(4, "0")}`,
-      membershipNo: `MEM-GCH-${(i + 1).toString().padStart(3, "0")}`,
-      idNo: `${(900101 + i).toString()}-08-${(2000 + i).toString()}`,
-      personType: i % 4 === 0 ? "Dependent" : "Employee",
-      companyName: "Global Corp Holdings",
-      companyCode: "GCH01",
-      policyNo: "POL-2025-001",
-      status: i % 15 === 0 ? "Suspended" : "Active",
-    }))
-
-    addBulkPersons(
-      {
-        groupName: "Global Holdings Group",
-        dateUpload: "2024-01-20",
-        uploadStatus: "Complete",
-        uploadedBy: "HR Manager",
-      },
-      globalPersons,
-    )
-
-    // Add more sample groups...
-    const easternPersons: Omit<
-      Person,
-      "id" | "dateCreated" | "dateModified" | "createdBy" | "modifiedBy" | "groupId" | "groupName" | "uploadBatchId"
-    >[] = Array.from({ length: 18 }, (_, i) => ({
-      name: `Eastern Employee ${i + 1}`,
-      personId: `GCE${(i + 1).toString().padStart(4, "0")}`,
-      membershipNo: `MEM-GCE-${(i + 1).toString().padStart(3, "0")}`,
-      idNo: `${(850101 + i).toString()}-10-${(3000 + i).toString()}`,
-      personType: i % 5 === 0 ? "Dependent" : "Employee",
-      companyName: "GC Eastern Division",
-      companyCode: "GCE01",
-      policyNo: "POL-2025-002",
-      status: "Active",
-    }))
-
-    addBulkPersons(
-      {
-        groupName: "Eastern Division Group",
-        dateUpload: "2024-01-18",
-        uploadStatus: "Pending Review",
-        uploadedBy: "Division Manager",
-      },
-      easternPersons,
-    )
+export const getPersonsBySearchTerm = (searchTerm: string): Person[] => {
+  const persons = getPersons()
+  if (!searchTerm) {
+    return persons
   }
+  const lowerCaseSearchTerm = searchTerm.toLowerCase()
+  return persons.filter(
+    (person) =>
+      person.name.toLowerCase().includes(lowerCaseSearchTerm) ||
+      person.personId.toLowerCase().includes(lowerCaseSearchTerm) ||
+      person.idNo.toLowerCase().includes(lowerCaseSearchTerm),
+  )
+}
+
+export function getPersonRelationshipsData(personId: string): PersonRelationship[] {
+  return relationshipsData.filter((rel) => rel.personId1 === personId || rel.personId2 === personId)
+}
+
+export function getDependentsOfPerson(primaryPersonId: string): PersonProfile[] {
+  const dependentRelationships = relationshipsData.filter((rel) => rel.personId1 === primaryPersonId)
+  const dependentIds = dependentRelationships.map((rel) => rel.personId2)
+  const persons = getPersons()
+  return persons.filter((person) => dependentIds.includes(person.id))
+}
+
+export function getPrimaryPersonForDependent(dependentId: string): PersonProfile | undefined {
+  const primaryRelationship = relationshipsData.find((rel) => rel.personId2 === dependentId)
+  if (primaryRelationship) {
+    const persons = getPersons()
+    return persons.find((person) => person.id === primaryRelationship.personId1)
+  }
+  return undefined
+}
+
+// For testing and resetting
+export const clearAllPersons = () => {
+  localStorage.removeItem(PERSONS_STORAGE_KEY)
+  localStorage.removeItem(RELATIONSHIPS_STORAGE_KEY)
+  personsData = []
+  relationshipsData = []
 }

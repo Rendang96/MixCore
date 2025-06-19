@@ -10,7 +10,13 @@ import { PolicyListing } from "./policy-listing"
 import { CreateNewPolicy } from "./create-new-policy"
 import { ViewPolicy } from "./view-policy"
 import { EditPolicy } from "./edit-policy"
-import { getPolicies, deletePolicy, saveBasicPolicyInfo, type CompletePolicy } from "@/lib/policy/policy-storage"
+import {
+  getPolicies,
+  deletePolicy,
+  saveBasicPolicyInfo,
+  initializeDummyPolicyData,
+  type CompletePolicy,
+} from "@/lib/policy/policy-storage"
 
 // Define policy type
 export interface Policy {
@@ -96,6 +102,9 @@ export function PolicySearch() {
 
   // Load policies from localStorage on component mount
   useEffect(() => {
+    // Initialize dummy data if no policies exist
+    initializeDummyPolicyData()
+
     setPolicies(getPolicies())
   }, [])
 

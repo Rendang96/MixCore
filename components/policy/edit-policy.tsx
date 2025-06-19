@@ -6,11 +6,13 @@ import { Input } from "@/components/ui/input"
 import { Card, CardContent } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { PageBreadcrumbs } from "@/components/page-breadcrumbs"
-import { Calendar } from "lucide-react"
+import { Calendar, Search } from "lucide-react"
 import { type CompletePolicy, saveBasicPolicyInfo } from "@/lib/policy/policy-storage"
 import { PolicyRuleTab } from "./policy-rule-tab"
 import { ServiceTypeTab } from "./service-type-tab"
 import { ContactInformationTab } from "./contact-information-tab"
+import { getProducts } from "@/lib/product/product-storage"
+import type { Product } from "@/components/product/product-search"
 
 interface EditPolicyProps {
   policy: CompletePolicy
@@ -30,6 +32,30 @@ export function EditPolicy({ policy, onSave, onCancel, onBreadcrumbClick }: Edit
   const [payor, setPayor] = useState(policy.payor || "")
   const [activeTab, setActiveTab] = useState("basic")
   const [updatedPolicy, setUpdatedPolicy] = useState<CompletePolicy>(policy)
+
+  const [products, setProducts] = useState<Product[]>([])
+  const [productSearchTerm, setProductSearchTerm] = useState("")
+  const [filteredProducts, setFilteredProducts] = useState<Product[]>([])
+
+  // Load products from storage
+  useEffect(() => {
+    const productList = getProducts()
+    setProducts(productList)
+  }, [])
+
+  // Filter products based on search term
+  useEffect(() => {
+    if (productSearchTerm.trim()) {
+      const filtered = products.filter(
+        (product) =>
+          product.code.toLowerCase().includes(productSearchTerm.toLowerCase()) ||
+          product.name.toLowerCase().includes(productSearchTerm.toLowerCase()),
+      )
+      setFilteredProducts(filtered)
+    } else {
+      setFilteredProducts([])
+    }
+  }, [productSearchTerm, products])
 
   // Update the local updatedPolicy state when basic info changes
   useEffect(() => {
@@ -174,6 +200,61 @@ export function EditPolicy({ policy, onSave, onCancel, onBreadcrumbClick }: Edit
                   onChange={(e) => setPolicyName(e.target.value)}
                   placeholder="Enter Policy Name"
                   className="w-full"
+                />
+              </div>
+              <div>
+                <label htmlFor="productCode" className="text-sm font-medium text-slate-700">
+                  Product Code
+                </label>
+                <div className="relative">
+                  <Input
+                    id="productCode"
+                    value={policy.productCode || ""}
+                    onChange={(e) => {
+                      setProductSearchTerm(e.target.value)
+                    }}
+                    placeholder="Type to search product code..."
+                    className="w-full pr-10"
+                    autoComplete="off"
+                  />
+                  <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
+                  {filteredProducts.length > 0 && productSearchTerm && (
+                    <div className="absolute top-full left-0 right-0 mt-1 border rounded-md shadow-lg bg-white max-h-60 overflow-y-auto z-50">
+                      <ul className="divide-y">
+                        {filteredProducts.map((product) => (
+                          <li
+                            key={product.id}
+                            className="px-4 py-3 hover:bg-gray-50 cursor-pointer"
+                            onClick={() => {
+                              // Update the policy object directly
+                              setUpdatedPolicy((prev) => ({
+                                ...prev,
+                                productCode: product.code,
+                                productName: product.name,
+                              }))
+                              setProductSearchTerm("")
+                              setFilteredProducts([])
+                            }}
+                          >
+                            <div className="font-medium text-sm">{product.code}</div>
+                            <div className="text-xs text-gray-600">{product.name}</div>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              </div>
+              <div>
+                <label htmlFor="productName" className="text-sm font-medium text-slate-700">
+                  Product Name
+                </label>
+                <Input
+                  id="productName"
+                  value={policy.productName || ""}
+                  readOnly
+                  placeholder="Product name will be auto-filled"
+                  className="w-full bg-gray-50"
                 />
               </div>
 

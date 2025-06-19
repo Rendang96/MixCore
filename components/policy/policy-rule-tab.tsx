@@ -7,6 +7,8 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Search } from "lucide-react"
 import { savePolicyRuleInfo } from "@/lib/policy/policy-storage"
+import { getCatalogues, getCatalogueById } from "@/lib/catalogue/catalogue-storage"
+import { initializeCompleteCatalogueData } from "@/lib/catalogue/complete-catalogue-initializer"
 
 interface PolicyRuleTabProps {
   policyId: string
@@ -34,248 +36,28 @@ export function PolicyRuleTab({ policyId, onSave, onCancel, initialData }: Polic
   const [searchSpecifiedIllness, setSearchSpecifiedIllness] = useState("")
   const [searchCongenitalCondition, setSearchCongenitalCondition] = useState("")
   const [searchExclusion, setSearchExclusion] = useState("")
+  const [catalogueSuggestions, setCatalogueSuggestions] = useState<any[]>([])
+  const [showSuggestions, setShowSuggestions] = useState(false)
+  const [selectedCatalogue, setSelectedCatalogue] = useState<any>(null)
 
-  // Sample pre-existing conditions data
-  const preExistingConditions: Condition[] = [
-    {
-      id: 1,
-      no: 1,
-      code: "PRE01",
-      name: "Hernia",
-      description: "Abdominal wall weakness causing tissue protrusion",
-      waitingPeriod: "2 years",
-      coInsurance: "N/A",
-      deductible: "N/A",
-      coPayment: "N/A",
-    },
-    {
-      id: 2,
-      no: 2,
-      code: "PRE02",
-      name: "Cataract",
-      description: "Clouding of the lens in the eye",
-      waitingPeriod: "6 months",
-      coInsurance: "N/A",
-      deductible: "N/A",
-      coPayment: "N/A",
-    },
-    {
-      id: 3,
-      no: 3,
-      code: "PRE03",
-      name: "Gallstones",
-      description: "Hardened deposits in the gallbladder",
-      waitingPeriod: "2 years",
-      coInsurance: "N/A",
-      deductible: "N/A",
-      coPayment: "N/A",
-    },
-    {
-      id: 4,
-      no: 4,
-      code: "PRE04",
-      name: "Varicose Veins",
-      description: "Enlarged veins, usually in the legs",
-      waitingPeriod: "1 year",
-      coInsurance: "N/A",
-      deductible: "N/A",
-      coPayment: "N/A",
-    },
-    {
-      id: 5,
-      no: 5,
-      code: "PRE05",
-      name: "Sinusitis (with surgery)",
-      description: "Sinus inflammation requiring surgical treatment",
-      waitingPeriod: "2 years",
-      coInsurance: "N/A",
-      deductible: "N/A",
-      coPayment: "N/A",
-    },
-  ]
-
-  // Sample specified illness data
-  const specifiedIllnesses: Condition[] = [
-    {
-      id: 1,
-      no: 1,
-      code: "SI01",
-      name: "Hernia",
-      description: "Abdominal wall weakness causing tissue protrusion",
-      waitingPeriod: "2 years",
-      coInsurance: "N/A",
-      deductible: "N/A",
-      coPayment: "N/A",
-    },
-    {
-      id: 2,
-      no: 2,
-      code: "SI02",
-      name: "Cataract",
-      description: "Clouding of the lens in the eye",
-      waitingPeriod: "6 months",
-      coInsurance: "N/A",
-      deductible: "N/A",
-      coPayment: "N/A",
-    },
-    {
-      id: 3,
-      no: 3,
-      code: "SI03",
-      name: "Gallstones",
-      description: "Hardened deposits in the gallbladder",
-      waitingPeriod: "2 years",
-      coInsurance: "N/A",
-      deductible: "N/A",
-      coPayment: "N/A",
-    },
-    {
-      id: 4,
-      no: 4,
-      code: "SI04",
-      name: "Varicose Veins",
-      description: "Enlarged veins, usually in the legs",
-      waitingPeriod: "1 year",
-      coInsurance: "N/A",
-      deductible: "N/A",
-      coPayment: "N/A",
-    },
-    {
-      id: 5,
-      no: 5,
-      code: "SI05",
-      name: "Sinusitis (with surgery)",
-      description: "Sinus inflammation requiring surgical treatment",
-      waitingPeriod: "2 years",
-      coInsurance: "N/A",
-      deductible: "N/A",
-      coPayment: "N/A",
-    },
-  ]
-
-  // Sample congenital conditions data
-  const congenitalConditions: Condition[] = [
-    {
-      id: 1,
-      no: 1,
-      code: "SI01",
-      name: "Hernia",
-      description: "Abdominal wall weakness causing tissue protrusion",
-      waitingPeriod: "2 years",
-      coInsurance: "N/A",
-      deductible: "N/A",
-      coPayment: "N/A",
-    },
-    {
-      id: 2,
-      no: 2,
-      code: "PRE02",
-      name: "Cataract",
-      description: "Clouding of the lens in the eye",
-      waitingPeriod: "6 months",
-      coInsurance: "N/A",
-      deductible: "N/A",
-      coPayment: "N/A",
-    },
-    {
-      id: 3,
-      no: 3,
-      code: "PRE03",
-      name: "Gallstones",
-      description: "Hardened deposits in the gallbladder",
-      waitingPeriod: "2 years",
-      coInsurance: "N/A",
-      deductible: "N/A",
-      coPayment: "N/A",
-    },
-    {
-      id: 4,
-      no: 4,
-      code: "PRE04",
-      name: "Varicose Veins",
-      description: "Enlarged veins, usually in the legs",
-      waitingPeriod: "1 year",
-      coInsurance: "N/A",
-      deductible: "N/A",
-      coPayment: "N/A",
-    },
-    {
-      id: 5,
-      no: 5,
-      code: "PRE05",
-      name: "Sinusitis (with surgery)",
-      description: "Sinus inflammation requiring surgical treatment",
-      waitingPeriod: "2 years",
-      coInsurance: "N/A",
-      deductible: "N/A",
-      coPayment: "N/A",
-    },
-  ]
-
-  // Sample exclusions data
-  const exclusions: Condition[] = [
-    {
-      id: 1,
-      no: 1,
-      code: "EX01",
-      name: "Hernia",
-      description: "Abdominal wall weakness causing tissue protrusion",
-      waitingPeriod: "2 years",
-      coInsurance: "N/A",
-      deductible: "N/A",
-      coPayment: "N/A",
-    },
-    {
-      id: 2,
-      no: 2,
-      code: "EX02",
-      name: "Cataract",
-      description: "Clouding of the lens in the eye",
-      waitingPeriod: "6 months",
-      coInsurance: "N/A",
-      deductible: "N/A",
-      coPayment: "N/A",
-    },
-    {
-      id: 3,
-      no: 3,
-      code: "EX03",
-      name: "Gallstones",
-      description: "Hardened deposits in the gallbladder",
-      waitingPeriod: "2 years",
-      coInsurance: "N/A",
-      deductible: "N/A",
-      coPayment: "N/A",
-    },
-    {
-      id: 4,
-      no: 4,
-      code: "EX04",
-      name: "Varicose Veins",
-      description: "Enlarged veins, usually in the legs",
-      waitingPeriod: "1 year",
-      coInsurance: "N/A",
-      deductible: "N/A",
-      coPayment: "N/A",
-    },
-    {
-      id: 5,
-      no: 5,
-      code: "EX05",
-      name: "Sinusitis (with surgery)",
-      description: "Sinus inflammation requiring surgical treatment",
-      waitingPeriod: "2 years",
-      coInsurance: "N/A",
-      deductible: "N/A",
-      coPayment: "N/A",
-    },
-  ]
+  // Dynamic data from catalogue storage
+  const [preExistingConditions, setPreExistingConditions] = useState<Condition[]>([])
+  const [specifiedIllnesses, setSpecifiedIllnesses] = useState<Condition[]>([])
+  const [congenitalConditions, setCongenitalConditions] = useState<Condition[]>([])
+  const [exclusions, setExclusions] = useState<Condition[]>([])
 
   // Initialize selected conditions from initialData if available
   const [selectedConditions, setSelectedConditions] = useState<number[]>([])
   const [selectedIllnesses, setSelectedIllnesses] = useState<number[]>([])
   const [selectedCongenitalConditions, setSelectedCongenitalConditions] = useState<number[]>([])
   const [selectedExclusions, setSelectedExclusions] = useState<number[]>([])
+
+  // Initialize catalogue data when component mounts
+  useEffect(() => {
+    // Initialize the catalogue data first
+    initializeCompleteCatalogueData()
+    console.log("Initialized catalogue data")
+  }, [])
 
   // Load initial data if available
   useEffect(() => {
@@ -284,38 +66,184 @@ export function PolicyRuleTab({ policyId, onSave, onCancel, initialData }: Polic
       if (initialData.preExistingConditions && initialData.preExistingConditions.length > 0) {
         const ids = initialData.preExistingConditions.map((c: any) => c.id || c)
         setSelectedConditions(ids)
-      } else {
-        setSelectedConditions([1, 2, 3, 4, 5]) // Default
       }
 
       if (initialData.specifiedIllnesses && initialData.specifiedIllnesses.length > 0) {
         const ids = initialData.specifiedIllnesses.map((c: any) => c.id || c)
         setSelectedIllnesses(ids)
-      } else {
-        setSelectedIllnesses([1, 2, 3, 4, 5]) // Default
       }
 
       if (initialData.congenitalConditions && initialData.congenitalConditions.length > 0) {
         const ids = initialData.congenitalConditions.map((c: any) => c.id || c)
         setSelectedCongenitalConditions(ids)
-      } else {
-        setSelectedCongenitalConditions([1, 2, 3, 4, 5]) // Default
       }
 
       if (initialData.exclusions && initialData.exclusions.length > 0) {
         const ids = initialData.exclusions.map((c: any) => c.id || c)
         setSelectedExclusions(ids)
-      } else {
-        setSelectedExclusions([1, 2, 3, 4, 5]) // Default
       }
-    } else {
-      // Default values if no initial data
-      setSelectedConditions([1, 2, 3, 4, 5])
-      setSelectedIllnesses([1, 2, 3, 4, 5])
-      setSelectedCongenitalConditions([1, 2, 3, 4, 5])
-      setSelectedExclusions([1, 2, 3, 4, 5])
+
+      // Set selected catalogue if available
+      if (initialData.catalogueCode) {
+        const catalogues = getCatalogues()
+        const catalogue = catalogues.find((cat) => cat.code === initialData.catalogueCode)
+        if (catalogue) {
+          setSelectedCatalogue(catalogue)
+          setSearchCatalogue(catalogue.name)
+          loadCatalogueData(catalogue.id)
+        }
+      }
     }
   }, [initialData])
+
+  // Load catalogue suggestions when search term changes
+  useEffect(() => {
+    if (searchCatalogue.length > 0) {
+      try {
+        const catalogues = getCatalogues()
+        console.log("Available catalogues:", catalogues)
+
+        const filtered = catalogues.filter(
+          (cat) =>
+            cat.name?.toLowerCase().includes(searchCatalogue.toLowerCase()) ||
+            cat.code?.toLowerCase().includes(searchCatalogue.toLowerCase()) ||
+            cat.description?.toLowerCase().includes(searchCatalogue.toLowerCase()),
+        )
+
+        console.log("Filtered catalogues for search term:", searchCatalogue, filtered)
+        setCatalogueSuggestions(filtered)
+        setShowSuggestions(filtered.length > 0)
+      } catch (error) {
+        console.error("Error loading catalogues:", error)
+        setCatalogueSuggestions([])
+        setShowSuggestions(false)
+      }
+    } else {
+      setShowSuggestions(false)
+    }
+  }, [searchCatalogue])
+
+  const loadCatalogueData = (catalogueId: string) => {
+    try {
+      console.log("Loading catalogue data for ID:", catalogueId)
+
+      // Get the actual catalogue data from storage
+      const catalogue = getCatalogueById(catalogueId)
+      console.log("Found catalogue:", catalogue)
+
+      if (catalogue && catalogue.items) {
+        // Filter items by type and convert to the expected format
+        const preExistingItems = catalogue.items
+          .filter((item) => item.type === "pre-existing")
+          .map((item, index) => ({
+            id: Number.parseInt(item.id) || index + 1,
+            no: index + 1,
+            code: item.code || `PRE${String(index + 1).padStart(3, "0")}`,
+            name: item.name,
+            description: item.description,
+            waitingPeriod: item.waitingPeriod || "N/A",
+            coInsurance: item.coInsurance || "N/A",
+            deductible: item.deductible || "N/A",
+            coPayment: item.coPayment || "N/A",
+          }))
+
+        const specifiedItems = catalogue.items
+          .filter((item) => item.type === "specified")
+          .map((item, index) => ({
+            id: Number.parseInt(item.id) || index + 1,
+            no: index + 1,
+            code: item.code || `SI${String(index + 1).padStart(3, "0")}`,
+            name: item.name,
+            description: item.description,
+            waitingPeriod: item.waitingPeriod || "N/A",
+            coInsurance: item.coInsurance || "N/A",
+            deductible: item.deductible || "N/A",
+            coPayment: item.coPayment || "N/A",
+          }))
+
+        const congenitalItems = catalogue.items
+          .filter((item) => item.type === "congenital")
+          .map((item, index) => ({
+            id: Number.parseInt(item.id) || index + 1,
+            no: index + 1,
+            code: item.code || `CC${String(index + 1).padStart(3, "0")}`,
+            name: item.name,
+            description: item.description,
+            waitingPeriod: item.waitingPeriod || "N/A",
+            coInsurance: item.coInsurance || "N/A",
+            deductible: item.deductible || "N/A",
+            coPayment: item.coPayment || "N/A",
+          }))
+
+        const exclusionItems = catalogue.items
+          .filter((item) => item.type === "exclusion")
+          .map((item, index) => ({
+            id: Number.parseInt(item.id) || index + 1,
+            no: index + 1,
+            code: item.code || `EX${String(index + 1).padStart(3, "0")}`,
+            name: item.name,
+            description: item.description,
+            waitingPeriod: item.waitingPeriod || "N/A",
+            coInsurance: item.coInsurance || "N/A",
+            deductible: item.deductible || "N/A",
+            coPayment: item.coPayment || "N/A",
+          }))
+
+        // Set the data
+        setPreExistingConditions(preExistingItems)
+        setSpecifiedIllnesses(specifiedItems)
+        setCongenitalConditions(congenitalItems)
+        setExclusions(exclusionItems)
+
+        // Auto-select all items by default
+        const preExistingIds = preExistingItems.map((item) => item.id)
+        const specifiedIds = specifiedItems.map((item) => item.id)
+        const congenitalIds = congenitalItems.map((item) => item.id)
+        const exclusionIds = exclusionItems.map((item) => item.id)
+
+        setSelectedConditions(preExistingIds)
+        setSelectedIllnesses(specifiedIds)
+        setSelectedCongenitalConditions(congenitalIds)
+        setSelectedExclusions(exclusionIds)
+
+        console.log("Loaded catalogue data:", {
+          catalogueId,
+          preExisting: preExistingItems.length,
+          specified: specifiedItems.length,
+          congenital: congenitalItems.length,
+          exclusions: exclusionItems.length,
+        })
+      } else {
+        // No catalogue found or no items
+        console.log("No catalogue found or no items for:", catalogueId)
+        setPreExistingConditions([])
+        setSpecifiedIllnesses([])
+        setCongenitalConditions([])
+        setExclusions([])
+      }
+    } catch (error) {
+      console.error("Error loading catalogue data:", error)
+      // Fallback to empty arrays
+      setPreExistingConditions([])
+      setSpecifiedIllnesses([])
+      setCongenitalConditions([])
+      setExclusions([])
+    }
+  }
+
+  const handleCatalogueSelect = (catalogue: any) => {
+    console.log("Selected catalogue:", catalogue)
+    setSelectedCatalogue(catalogue)
+    setSearchCatalogue(catalogue.name)
+    setShowSuggestions(false)
+    loadCatalogueData(catalogue.id)
+
+    // Remove these lines that clear selections:
+    // setSelectedConditions([])
+    // setSelectedIllnesses([])
+    // setSelectedCongenitalConditions([])
+    // setSelectedExclusions([])
+  }
 
   const toggleCondition = (id: number) => {
     setSelectedConditions((prev) =>
@@ -339,18 +267,14 @@ export function PolicyRuleTab({ policyId, onSave, onCancel, initialData }: Polic
     )
   }
 
-  // Filter data based on catalogue search and individual tab search
+  // Filter data based on individual tab search
   const filterData = (data: Condition[], tabSearch: string) => {
     return data.filter(
       (item) =>
-        (searchCatalogue === "" ||
-          item.name.toLowerCase().includes(searchCatalogue.toLowerCase()) ||
-          item.code.toLowerCase().includes(searchCatalogue.toLowerCase()) ||
-          item.description.toLowerCase().includes(searchCatalogue.toLowerCase())) &&
-        (tabSearch === "" ||
-          item.name.toLowerCase().includes(tabSearch.toLowerCase()) ||
-          item.code.toLowerCase().includes(tabSearch.toLowerCase()) ||
-          item.description.toLowerCase().includes(tabSearch.toLowerCase())),
+        tabSearch === "" ||
+        item.name.toLowerCase().includes(tabSearch.toLowerCase()) ||
+        item.code.toLowerCase().includes(tabSearch.toLowerCase()) ||
+        item.description.toLowerCase().includes(tabSearch.toLowerCase()),
     )
   }
 
@@ -375,9 +299,9 @@ export function PolicyRuleTab({ policyId, onSave, onCancel, initialData }: Polic
   const handleSave = () => {
     // Create policy rule info object
     const policyRuleInfo = {
-      catalogueCode: initialData?.catalogueCode || "EX00383",
-      catalogueName: initialData?.catalogueName || "KPI Exclusion",
-      catalogueDescription: initialData?.catalogueDescription || "This is the Default Catalogue",
+      catalogueCode: selectedCatalogue?.code || initialData?.catalogueCode || "",
+      catalogueName: selectedCatalogue?.name || initialData?.catalogueName || "",
+      catalogueDescription: selectedCatalogue?.description || initialData?.catalogueDescription || "",
       preExistingConditions: preExistingConditions.filter((condition) => selectedConditions.includes(condition.id)),
       specifiedIllnesses: specifiedIllnesses.filter((illness) => selectedIllnesses.includes(illness.id)),
       congenitalConditions: congenitalConditions.filter((condition) =>
@@ -407,6 +331,24 @@ export function PolicyRuleTab({ policyId, onSave, onCancel, initialData }: Polic
           <button className="absolute right-2 top-1/2 -translate-y-1/2">
             <Search className="h-4 w-4 text-gray-500" />
           </button>
+
+          {/* Catalogue suggestions dropdown */}
+          {showSuggestions && catalogueSuggestions.length > 0 && (
+            <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-md shadow-lg max-h-60 overflow-y-auto">
+              {catalogueSuggestions.map((catalogue) => (
+                <div
+                  key={catalogue.id}
+                  className="px-4 py-2 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-b-0"
+                  onClick={() => handleCatalogueSelect(catalogue)}
+                >
+                  <div className="font-medium text-sm">{catalogue.name}</div>
+                  <div className="text-xs text-gray-500">
+                    {catalogue.code} - {catalogue.description}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 
@@ -416,16 +358,18 @@ export function PolicyRuleTab({ policyId, onSave, onCancel, initialData }: Polic
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
               <p className="mb-2">
-                <span className="font-medium">Catalogue Code:</span> {initialData?.catalogueCode || "EX00383"}
+                <span className="font-medium">Catalogue Code:</span>{" "}
+                {selectedCatalogue?.code || initialData?.catalogueCode || ""}
               </p>
               <p>
-                <span className="font-medium">Catalogue Name:</span> {initialData?.catalogueName || "KPI Exclusion"}
+                <span className="font-medium">Catalogue Name:</span>{" "}
+                {selectedCatalogue?.name || initialData?.catalogueName || ""}
               </p>
             </div>
             <div>
               <p>
                 <span className="font-medium">Catalogue Description:</span>{" "}
-                {initialData?.catalogueDescription || "This is the Default Catalogue"}
+                {selectedCatalogue?.description || initialData?.catalogueDescription || ""}
               </p>
             </div>
           </div>
@@ -520,7 +464,9 @@ export function PolicyRuleTab({ policyId, onSave, onCancel, initialData }: Polic
                     ) : (
                       <TableRow>
                         <TableCell colSpan={9} className="h-24 text-center">
-                          No matching conditions found.
+                          {selectedCatalogue
+                            ? "No pre-existing conditions found in this catalogue."
+                            : "Please select a catalogue to view conditions."}
                         </TableCell>
                       </TableRow>
                     )}
@@ -585,7 +531,9 @@ export function PolicyRuleTab({ policyId, onSave, onCancel, initialData }: Polic
                     ) : (
                       <TableRow>
                         <TableCell colSpan={9} className="h-24 text-center">
-                          No matching illnesses found.
+                          {selectedCatalogue
+                            ? "No specified illnesses found in this catalogue."
+                            : "Please select a catalogue to view illnesses."}
                         </TableCell>
                       </TableRow>
                     )}
@@ -650,7 +598,9 @@ export function PolicyRuleTab({ policyId, onSave, onCancel, initialData }: Polic
                     ) : (
                       <TableRow>
                         <TableCell colSpan={9} className="h-24 text-center">
-                          No matching conditions found.
+                          {selectedCatalogue
+                            ? "No congenital conditions found in this catalogue."
+                            : "Please select a catalogue to view conditions."}
                         </TableCell>
                       </TableRow>
                     )}
@@ -715,7 +665,9 @@ export function PolicyRuleTab({ policyId, onSave, onCancel, initialData }: Polic
                     ) : (
                       <TableRow>
                         <TableCell colSpan={9} className="h-24 text-center">
-                          No matching exclusions found.
+                          {selectedCatalogue
+                            ? "No exclusions found in this catalogue."
+                            : "Please select a catalogue to view exclusions."}
                         </TableCell>
                       </TableRow>
                     )}
@@ -727,16 +679,14 @@ export function PolicyRuleTab({ policyId, onSave, onCancel, initialData }: Polic
         </div>
       )}
 
-      {activeSubTab !== "service-type" && (
-        <div className="flex gap-3 mt-6">
-          <Button onClick={onCancel} variant="destructive" className="bg-red-600 hover:bg-red-700">
-            Cancel
-          </Button>
-          <Button onClick={handleSave} className="bg-blue-600 hover:bg-blue-700">
-            Save
-          </Button>
-        </div>
-      )}
+      <div className="flex gap-3 mt-6">
+        <Button onClick={onCancel} variant="destructive" className="bg-red-600 hover:bg-red-700">
+          Cancel
+        </Button>
+        <Button onClick={handleSave} className="bg-blue-600 hover:bg-blue-700">
+          Save
+        </Button>
+      </div>
     </div>
   )
 }

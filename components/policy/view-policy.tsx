@@ -1,11 +1,15 @@
 "use client"
 
+import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
-import { PageBreadcrumbs } from "@/components/page-breadcrumbs"
-import { Pencil } from "lucide-react"
-import type { CompletePolicy } from "@/lib/policy/policy-storage"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { PageBreadcrumbs } from "@/components/page-breadcrumbs"
+import { ArrowLeft, Edit } from "lucide-react"
+import type { CompletePolicy } from "@/lib/policy/policy-storage"
+import { PolicyRuleTab } from "./policy-rule-tab"
+import { ServiceTypeTab } from "./service-type-tab"
+import { ContactInformationTab } from "./contact-information-tab"
 
 interface ViewPolicyProps {
   policy: CompletePolicy
@@ -15,6 +19,17 @@ interface ViewPolicyProps {
 }
 
 export function ViewPolicy({ policy, onBack, onEdit, onBreadcrumbClick }: ViewPolicyProps) {
+  const [activeTab, setActiveTab] = useState("basic-info")
+
+  // Dummy handlers for view mode (no actual saving in view mode)
+  const handleSave = () => {
+    console.log("View mode - no save action")
+  }
+
+  const handleCancel = () => {
+    console.log("View mode - no cancel action")
+  }
+
   return (
     <div>
       <div className="mb-6">
@@ -25,227 +40,111 @@ export function ViewPolicy({ policy, onBack, onEdit, onBreadcrumbClick }: ViewPo
             { label: "View Policy" },
           ]}
         />
-        <div className="flex items-center justify-between">
-          <h2 className="text-2xl font-bold text-slate-800">View Policy</h2>
-          <div className="flex gap-3">
-            <Button variant="outline" onClick={onBack}>
+        <div className="flex justify-between items-center mt-4">
+          <h1 className="text-xl font-semibold">View Policy</h1>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={onBack} className="flex items-center gap-1">
+              <ArrowLeft className="h-4 w-4" />
               Back
             </Button>
-            <Button onClick={onEdit} className="bg-sky-600 hover:bg-sky-700">
-              <Pencil className="h-4 w-4 mr-2" />
+            <Button onClick={onEdit} className="flex items-center gap-1 bg-sky-600 hover:bg-sky-700">
+              <Edit className="h-4 w-4" />
               Edit
             </Button>
           </div>
         </div>
       </div>
 
-      <Tabs defaultValue="basic" className="w-full">
-        <TabsList className="mb-4">
-          <TabsTrigger value="basic">Basic Information</TabsTrigger>
-          <TabsTrigger value="rules">Policy Rules</TabsTrigger>
-          <TabsTrigger value="services">Service Types</TabsTrigger>
-          <TabsTrigger value="contacts">Contact Information</TabsTrigger>
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <TabsList className="grid grid-cols-4 mb-4">
+          <TabsTrigger value="basic-info">Basic Information</TabsTrigger>
+          <TabsTrigger value="policy-rule">Policy Rule</TabsTrigger>
+          <TabsTrigger value="service-type">Service Type</TabsTrigger>
+          <TabsTrigger value="contact-info">Contact Information</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="basic">
-          <Card className="rounded-lg border bg-white p-6 shadow-sm">
-            <CardContent className="p-0">
-              <h2 className="text-lg font-semibold mb-6">Policy Information</h2>
-
+        <TabsContent value="basic-info">
+          <Card>
+            <CardContent className="p-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
-                  <p className="text-sm font-medium text-slate-700">Policy Number</p>
-                  <p className="mt-1">{policy.policyNumber}</p>
+                  <h3 className="text-sm font-medium text-gray-500 mb-1">Policy Number</h3>
+                  <p className="text-base">{policy.policyNumber}</p>
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-slate-700">Policy Name</p>
-                  <p className="mt-1">{policy.policyName}</p>
+                  <h3 className="text-sm font-medium text-gray-500 mb-1">Policy Name</h3>
+                  <p className="text-base">{policy.policyName}</p>
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-slate-700">Policy Term/Period</p>
-                  <p className="mt-1">{policy.policyTerm}</p>
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-slate-700">Funding Type</p>
-                  <p className="mt-1">{policy.fundingType}</p>
-                </div>
-
-                <div>
-                  <p className="text-sm font-medium text-slate-700">Policy Effective Date</p>
-                  <p className="mt-1">{policy.effectiveDate}</p>
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-slate-700">Policy Expiry Date</p>
-                  <p className="mt-1">{policy.expiryDate}</p>
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-slate-700">Status</p>
-                  <p className="mt-1">
-                    <span
-                      className={`inline-flex rounded-full px-2 py-1 text-xs font-medium ${
-                        policy.status === "Active"
-                          ? "bg-emerald-100 text-emerald-700"
-                          : policy.status === "Inactive"
-                            ? "bg-gray-100 text-gray-700"
-                            : policy.status === "Pending"
-                              ? "bg-amber-100 text-amber-700"
-                              : "bg-red-100 text-red-700"
-                      }`}
-                    >
-                      {policy.status}
-                    </span>
+                  <h3 className="text-sm font-medium text-gray-500 mb-1">Product</h3>
+                  <p className="text-base">
+                    {policy.productName} ({policy.productCode})
                   </p>
+                </div>
+                <div>
+                  <h3 className="text-sm font-medium text-gray-500 mb-1">Funding Type</h3>
+                  <p className="text-base">{policy.fundingType}</p>
+                </div>
+                <div>
+                  <h3 className="text-sm font-medium text-gray-500 mb-1">Policy Term</h3>
+                  <p className="text-base">{policy.policyTerm}</p>
+                </div>
+                <div>
+                  <h3 className="text-sm font-medium text-gray-500 mb-1">Effective Date</h3>
+                  <p className="text-base">{policy.effectiveDate}</p>
+                </div>
+                <div>
+                  <h3 className="text-sm font-medium text-gray-500 mb-1">Expiry Date</h3>
+                  <p className="text-base">{policy.expiryDate}</p>
+                </div>
+                <div>
+                  <h3 className="text-sm font-medium text-gray-500 mb-1">Payor</h3>
+                  <p className="text-base">{policy.payor}</p>
+                </div>
+                <div>
+                  <h3 className="text-sm font-medium text-gray-500 mb-1">Status</h3>
+                  <span
+                    className={`inline-block px-2 py-1 text-xs font-medium rounded-full ${
+                      policy.status === "Active"
+                        ? "bg-green-100 text-green-800"
+                        : policy.status === "Pending"
+                          ? "bg-yellow-100 text-yellow-800"
+                          : "bg-red-100 text-red-800"
+                    }`}
+                  >
+                    {policy.status}
+                  </span>
                 </div>
               </div>
             </CardContent>
           </Card>
         </TabsContent>
 
-        <TabsContent value="rules">
-          <Card className="rounded-lg border bg-white p-6 shadow-sm">
-            <CardContent className="p-0">
-              <h2 className="text-lg font-semibold mb-6">Policy Rules</h2>
-
-              {policy.policyRule ? (
-                <div className="grid grid-cols-1 gap-6">
-                  <div>
-                    <p className="text-sm font-medium text-slate-700">Catalogue Code</p>
-                    <p className="mt-1">{policy.policyRule.catalogueCode}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-slate-700">Catalogue Name</p>
-                    <p className="mt-1">{policy.policyRule.catalogueName}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-slate-700">Catalogue Description</p>
-                    <p className="mt-1">{policy.policyRule.catalogueDescription}</p>
-                  </div>
-
-                  <div>
-                    <p className="text-sm font-medium text-slate-700">Pre-existing Conditions</p>
-                    {policy.policyRule.preExistingConditions && policy.policyRule.preExistingConditions.length > 0 ? (
-                      <ul className="mt-1 list-disc pl-5">
-                        {policy.policyRule.preExistingConditions.map((condition, index) => (
-                          <li key={index}>{condition.name || condition}</li>
-                        ))}
-                      </ul>
-                    ) : (
-                      <p className="mt-1 text-gray-500">None specified</p>
-                    )}
-                  </div>
-
-                  <div>
-                    <p className="text-sm font-medium text-slate-700">Specified Illnesses</p>
-                    {policy.policyRule.specifiedIllnesses && policy.policyRule.specifiedIllnesses.length > 0 ? (
-                      <ul className="mt-1 list-disc pl-5">
-                        {policy.policyRule.specifiedIllnesses.map((illness, index) => (
-                          <li key={index}>{illness.name || illness}</li>
-                        ))}
-                      </ul>
-                    ) : (
-                      <p className="mt-1 text-gray-500">None specified</p>
-                    )}
-                  </div>
-
-                  <div>
-                    <p className="text-sm font-medium text-slate-700">Congenital Conditions</p>
-                    {policy.policyRule.congenitalConditions && policy.policyRule.congenitalConditions.length > 0 ? (
-                      <ul className="mt-1 list-disc pl-5">
-                        {policy.policyRule.congenitalConditions.map((condition, index) => (
-                          <li key={index}>{condition.name || condition}</li>
-                        ))}
-                      </ul>
-                    ) : (
-                      <p className="mt-1 text-gray-500">None specified</p>
-                    )}
-                  </div>
-
-                  <div>
-                    <p className="text-sm font-medium text-slate-700">Exclusions</p>
-                    {policy.policyRule.exclusions && policy.policyRule.exclusions.length > 0 ? (
-                      <ul className="mt-1 list-disc pl-5">
-                        {policy.policyRule.exclusions.map((exclusion, index) => (
-                          <li key={index}>{exclusion.name || exclusion}</li>
-                        ))}
-                      </ul>
-                    ) : (
-                      <p className="mt-1 text-gray-500">None specified</p>
-                    )}
-                  </div>
-                </div>
-              ) : (
-                <p className="text-gray-500">No policy rules have been defined.</p>
-              )}
-            </CardContent>
-          </Card>
+        <TabsContent value="policy-rule">
+          <PolicyRuleTab
+            policyId={policy.id}
+            onSave={handleSave}
+            onCancel={handleCancel}
+            initialData={policy.policyRule}
+          />
         </TabsContent>
 
-        <TabsContent value="services">
-          <Card className="rounded-lg border bg-white p-6 shadow-sm">
-            <CardContent className="p-0">
-              <h2 className="text-lg font-semibold mb-6">Service Types</h2>
-
-              {policy.serviceType && policy.serviceType.serviceTypes && policy.serviceType.serviceTypes.length > 0 ? (
-                <div className="overflow-x-auto">
-                  <table className="w-full border-collapse">
-                    <thead>
-                      <tr className="border-b">
-                        <th className="py-2 px-4 text-left">Code</th>
-                        <th className="py-2 px-4 text-left">Name</th>
-                        <th className="py-2 px-4 text-left">Description</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {policy.serviceType.serviceTypes.map((service, index) => (
-                        <tr key={index} className="border-b">
-                          <td className="py-2 px-4">{service.code}</td>
-                          <td className="py-2 px-4">{service.name}</td>
-                          <td className="py-2 px-4">{service.description}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              ) : (
-                <p className="text-gray-500">No service types have been defined.</p>
-              )}
-            </CardContent>
-          </Card>
+        <TabsContent value="service-type">
+          <ServiceTypeTab
+            policyId={policy.id}
+            onSave={handleSave}
+            onCancel={handleCancel}
+            initialData={policy.serviceType}
+          />
         </TabsContent>
 
-        <TabsContent value="contacts">
-          <Card className="rounded-lg border bg-white p-6 shadow-sm">
-            <CardContent className="p-0">
-              <h2 className="text-lg font-semibold mb-6">Contact Information</h2>
-
-              {policy.contactInfo && policy.contactInfo.contacts && policy.contactInfo.contacts.length > 0 ? (
-                <div className="overflow-x-auto">
-                  <table className="w-full border-collapse">
-                    <thead>
-                      <tr className="border-b">
-                        <th className="py-2 px-4 text-left">Name</th>
-                        <th className="py-2 px-4 text-left">Role</th>
-                        <th className="py-2 px-4 text-left">Email</th>
-                        <th className="py-2 px-4 text-left">Phone</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {policy.contactInfo.contacts.map((contact, index) => (
-                        <tr key={index} className="border-b">
-                          <td className="py-2 px-4">{contact.name}</td>
-                          <td className="py-2 px-4">{contact.role}</td>
-                          <td className="py-2 px-4">{contact.email}</td>
-                          <td className="py-2 px-4">{contact.phone}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              ) : (
-                <p className="text-gray-500">No contacts have been added.</p>
-              )}
-            </CardContent>
-          </Card>
+        <TabsContent value="contact-info">
+          <ContactInformationTab
+            policyId={policy.id}
+            onSave={handleSave}
+            onCancel={handleCancel}
+            initialData={policy.contactInfo}
+          />
         </TabsContent>
       </Tabs>
     </div>

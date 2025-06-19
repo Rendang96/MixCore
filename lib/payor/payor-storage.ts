@@ -334,4 +334,257 @@ export class PayorStorage {
       lastUpdated,
     }
   }
+
+  // Initialize dummy data
+  static initializeDummyData(): boolean {
+    try {
+      const existingPayors = this.getAllPayors()
+      if (existingPayors.length > 0) {
+        return true // Data already exists
+      }
+
+      const dummyPayors: Payor[] = [
+        {
+          id: "payor-001",
+          name: "Great Eastern Life Assurance",
+          code: "GRE-001",
+          address: "Menara Great Eastern, 303 Jalan Ampang",
+          city: "kuala-lumpur",
+          postcode: "50450",
+          state: "kuala-lumpur",
+          country: "malaysia",
+          remarks: "Leading life insurance provider in Malaysia",
+          status: "Active",
+          contacts: [
+            {
+              id: "contact-001",
+              name: "Ahmad Rahman",
+              category: "Primary",
+              designation: "Claims Manager",
+              email: "ahmad.rahman@greateaster.com.my",
+              mobileNo: "012-3456789",
+              officeNo: "03-42591234",
+              extNo: "1001",
+              status: "Active",
+              remarks: "Main contact for claims processing",
+            },
+            {
+              id: "contact-002",
+              name: "Siti Nurhaliza",
+              category: "Secondary",
+              designation: "Customer Service Manager",
+              email: "siti.nurhaliza@greateaster.com.my",
+              mobileNo: "012-9876543",
+              officeNo: "03-42591234",
+              extNo: "1002",
+              status: "Active",
+              remarks: "Customer service inquiries",
+            },
+          ],
+          createdAt: "2024-01-15T08:00:00.000Z",
+          updatedAt: "2024-01-15T08:00:00.000Z",
+        },
+        {
+          id: "payor-002",
+          name: "Allianz Malaysia Berhad",
+          code: "ALL-002",
+          address: "Level 29, Menara Allianz Sentral, 203 Jalan Tun Sambanthan",
+          city: "kuala-lumpur",
+          postcode: "50470",
+          state: "kuala-lumpur",
+          country: "malaysia",
+          remarks: "International insurance and asset management company",
+          status: "Active",
+          contacts: [
+            {
+              id: "contact-003",
+              name: "Lim Wei Ming",
+              category: "Primary",
+              designation: "Medical Claims Director",
+              email: "wei.ming.lim@allianz.com.my",
+              mobileNo: "012-2345678",
+              officeNo: "03-20562200",
+              extNo: "2001",
+              status: "Active",
+              remarks: "Medical claims authorization",
+            },
+          ],
+          createdAt: "2024-01-16T09:30:00.000Z",
+          updatedAt: "2024-01-16T09:30:00.000Z",
+        },
+        {
+          id: "payor-003",
+          name: "AIA Malaysia",
+          code: "AIA-003",
+          address: "Level 18, Menara AIA Sentral, 30 Jalan Sultan Ismail",
+          city: "kuala-lumpur",
+          postcode: "50250",
+          state: "kuala-lumpur",
+          country: "malaysia",
+          remarks: "Premier life insurance company in Asia",
+          status: "Active",
+          contacts: [
+            {
+              id: "contact-004",
+              name: "Rajesh Kumar",
+              category: "Primary",
+              designation: "Operations Manager",
+              email: "rajesh.kumar@aia.com.my",
+              mobileNo: "012-7654321",
+              officeNo: "03-21562888",
+              extNo: "3001",
+              status: "Active",
+              remarks: "Operations and processing",
+            },
+            {
+              id: "contact-005",
+              name: "Michelle Tan",
+              category: "Secondary",
+              designation: "Account Manager",
+              email: "michelle.tan@aia.com.my",
+              mobileNo: "012-5432109",
+              officeNo: "03-21562888",
+              extNo: "3002",
+              status: "Active",
+              remarks: "Account management and relations",
+            },
+          ],
+          createdAt: "2024-01-17T10:15:00.000Z",
+          updatedAt: "2024-01-17T10:15:00.000Z",
+        },
+        {
+          id: "payor-004",
+          name: "Prudential Assurance Malaysia",
+          code: "PRU-004",
+          address: "Level 7, Menara Prudential, No. 10 Jalan Sultan Ismail",
+          city: "kuala-lumpur",
+          postcode: "50250",
+          state: "kuala-lumpur",
+          country: "malaysia",
+          remarks: "Leading life insurance and takaful operator",
+          status: "Active",
+          contacts: [
+            {
+              id: "contact-006",
+              name: "Fatimah Abdullah",
+              category: "Primary",
+              designation: "Claims Processing Head",
+              email: "fatimah.abdullah@prudential.com.my",
+              mobileNo: "012-8765432",
+              officeNo: "03-21791777",
+              extNo: "4001",
+              status: "Active",
+              remarks: "Claims processing and approval",
+            },
+          ],
+          createdAt: "2024-01-18T11:45:00.000Z",
+          updatedAt: "2024-01-18T11:45:00.000Z",
+        },
+        {
+          id: "payor-005",
+          name: "Zurich General Insurance Malaysia",
+          code: "ZUR-005",
+          address: "Level 23A, Menara Milenium, Jalan Damanlela",
+          city: "kuala-lumpur",
+          postcode: "50490",
+          state: "kuala-lumpur",
+          country: "malaysia",
+          remarks: "General insurance and risk management solutions",
+          status: "Inactive",
+          contacts: [
+            {
+              id: "contact-007",
+              name: "David Wong",
+              category: "Primary",
+              designation: "Branch Manager",
+              email: "david.wong@zurich.com.my",
+              mobileNo: "012-3456780",
+              officeNo: "03-20534888",
+              extNo: "5001",
+              status: "Inactive",
+              remarks: "Branch operations - currently inactive",
+            },
+          ],
+          createdAt: "2024-01-19T14:20:00.000Z",
+          updatedAt: "2024-01-19T14:20:00.000Z",
+        },
+      ]
+
+      return this.saveAllPayors(dummyPayors)
+    } catch (error) {
+      console.error("Error initializing dummy payor data:", error)
+      return false
+    }
+  }
+
+  // Relationship validation methods
+  static canDeletePayor(payorId: string): { canDelete: boolean; reason?: string } {
+    try {
+      // Check if payor has associated products
+      const products = this.getProductsByPayorId(payorId)
+      if (products.length > 0) {
+        return {
+          canDelete: false,
+          reason: `Cannot delete payor. It has ${products.length} associated product(s).`,
+        }
+      }
+      return { canDelete: true }
+    } catch (error) {
+      console.error("Error checking payor deletion:", error)
+      return { canDelete: false, reason: "Error checking dependencies" }
+    }
+  }
+
+  // Get products associated with a payor
+  static getProductsByPayorId(payorId: string): any[] {
+    try {
+      const productsData = localStorage.getItem("tpa_products")
+      if (!productsData) return []
+
+      const products = JSON.parse(productsData)
+      const payor = this.getPayorById(payorId)
+
+      if (!payor) return []
+
+      return products.filter((product: any) => product.payorCode === payor.code)
+    } catch (error) {
+      console.error("Error getting products by payor:", error)
+      return []
+    }
+  }
+
+  // Get policies associated with a payor (through products)
+  static getPoliciesByPayorId(payorId: string): any[] {
+    try {
+      const products = this.getProductsByPayorId(payorId)
+      const productCodes = products.map((p) => p.code)
+
+      const policiesData = localStorage.getItem("policies")
+      if (!policiesData) return []
+
+      const policies = JSON.parse(policiesData)
+      return policies.filter((policy: any) => productCodes.includes(policy.productCode))
+    } catch (error) {
+      console.error("Error getting policies by payor:", error)
+      return []
+    }
+  }
+
+  // Get relationship statistics for a payor
+  static getPayorRelationshipStats(payorId: string): {
+    productCount: number
+    policyCount: number
+    products: any[]
+    policies: any[]
+  } {
+    const products = this.getProductsByPayorId(payorId)
+    const policies = this.getPoliciesByPayorId(payorId)
+
+    return {
+      productCount: products.length,
+      policyCount: policies.length,
+      products,
+      policies,
+    }
+  }
 }

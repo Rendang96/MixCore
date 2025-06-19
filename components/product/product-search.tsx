@@ -11,12 +11,14 @@ import { PageBreadcrumbs } from "@/components/page-breadcrumbs"
 import { getProducts, saveProducts } from "@/lib/product/product-storage"
 import { FileText } from "lucide-react"
 
+// Update the Product interface to include payor field
 export interface Product {
   id: string
   name: string
   code: string
-  type?: string
+  payorCode?: string
   payor?: string
+  type?: string
   status: string
 }
 

@@ -6,33 +6,23 @@ import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { ChevronDown, ChevronUp, Search, Download, Filter, ArrowUpDown, UserPlus } from "lucide-react"
+import { ChevronDown, ChevronUp, Search, Download, Filter, ArrowUpDown, UserPlus, Upload } from "lucide-react"
 import { Card } from "@/components/ui/card"
 import { Checkbox } from "@/components/ui/checkbox"
 import { PersonDetails } from "./person-details"
 import { AddNewPerson } from "./add-new-person"
 import { AddBulkPerson } from "./add-bulk-person"
+import { BulkEditPerson } from "./bulk-edit-person"
 import { GroupUploadRecords } from "./group-upload-records"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { getPersons, searchPersons, initializeSampleData } from "@/lib/person/person-storage"
-
-interface Person {
-  id: string
-  name: string
-  personId: string
-  membershipNo: string
-  idNo: string
-  personType: string
-  companyName: string
-  policyNo: string
-  status: string
-  companyCode: string
-  groupId: string
-  groupName: string
-  totalRecords: number
-  dateUpload: string
-  uploadStatus: string
-}
+import {
+  getPersons,
+  searchPersons,
+  searchPersonGroups,
+  initializeSampleData,
+  type PersonProfile,
+} from "@/lib/person/person-storage"
+import { GenerateMembershipNo } from "./generate-membership-no"
 
 interface SearchFormState {
   personName: string
@@ -48,14 +38,24 @@ interface SearchFormState {
 
 export function PersonSearch() {
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false)
-  const [searchResults, setSearchResults] = useState<Person[]>([])
-  const [showResults, setShowResults] = useState(false)
-  const [selectedPerson, setSelectedPerson] = useState<Person | null>(null)
-  const [selectedGroup, setSelectedGroup] = useState<Person | null>(null)
+  // Replace these lines:
+  // const [searchResults, setSearchResults] = useState<PersonProfile[]>([])
+  // const [showResults, setShowResults] = useState(false)
+
+  // With these separate states:
+  const [singleSearchResults, setSingleSearchResults] = useState<PersonProfile[]>([])
+  const [bulkSearchResults, setBulkSearchResults] = useState<PersonProfile[]>([])
+  const [showSingleResults, setShowSingleResults] = useState(false)
+  const [showBulkResults, setShowBulkResults] = useState(false)
+  const [selectedPerson, setSelectedPerson] = useState<PersonProfile | null>(null)
+  const [selectedGroup, setSelectedGroup] = useState<PersonProfile | null>(null)
   const [showAddNew, setShowAddNew] = useState(false)
   const [showAddBulk, setShowAddBulk] = useState(false)
+  const [showBulkEdit, setShowBulkEdit] = useState(false)
   const [activeTab, setActiveTab] = useState("single")
   const [tableSearchTerm, setTableSearchTerm] = useState("")
+  const [showGenerateMembership, setShowGenerateMembership] = useState(false)
+  const [navigateToPersonId, setNavigateToPersonId] = useState<string | null>(null)
 
   // Form state to track input values
   const [searchForm, setSearchForm] = useState<SearchFormState>({
@@ -75,14 +75,30 @@ export function PersonSearch() {
     initializeSampleData()
   }, [])
 
+  // Handle navigation to specific person
+  React.useEffect(() => {
+    if (navigateToPersonId) {
+      const allPersons = getPersons()
+      const targetPerson = allPersons.find((p) => p.personId === navigateToPersonId)
+      if (targetPerson) {
+        setSelectedPerson(targetPerson)
+        setNavigateToPersonId(null)
+      }
+    }
+  }, [navigateToPersonId])
+
   // Sample data for the table
-  const sampleData: Person[] = [
+  const sampleData: PersonProfile[] = [
     {
       id: "1",
       name: "Nur Amani binti Zainal",
       personId: "MF0001",
       membershipNo: "CM-PMC 321-I",
       idNo: "880101-14-5567",
+      idType: "NRIC",
+      dateOfBirth: "1988-01-01",
+      gender: "Female",
+      nationality: "Malaysian",
       personType: "Employee",
       companyName: "PMCare Sdn. Bhd",
       companyCode: "PMC01",
@@ -100,6 +116,10 @@ export function PersonSearch() {
       personId: "P001235",
       membershipNo: "MEM123457",
       idNo: "900215-08-6678",
+      idType: "Passport",
+      dateOfBirth: "1990-02-15",
+      gender: "Female",
+      nationality: "American",
       personType: "Employee",
       companyName: "Global Corp Holdings",
       companyCode: "GCH01",
@@ -117,6 +137,10 @@ export function PersonSearch() {
       personId: "P001236",
       membershipNo: "MEM123458",
       idNo: "850630-10-5432",
+      idType: "NRIC",
+      dateOfBirth: "1985-06-30",
+      gender: "Male",
+      nationality: "Malaysian",
       personType: "Employee",
       companyName: "GC Eastern Division",
       companyCode: "GCE01",
@@ -134,6 +158,10 @@ export function PersonSearch() {
       personId: "P001237",
       membershipNo: "MEM123459",
       idNo: "920712-14-7890",
+      idType: "NRIC",
+      dateOfBirth: "1992-07-12",
+      gender: "Female",
+      nationality: "Malaysian",
       personType: "Dependent",
       companyName: "GC Eastern Division",
       companyCode: "GCE01",
@@ -151,6 +179,10 @@ export function PersonSearch() {
       personId: "P001238",
       membershipNo: "MEM123460",
       idNo: "780502-08-1122",
+      idType: "NRIC",
+      dateOfBirth: "1978-05-02",
+      gender: "Male",
+      nationality: "Malaysian",
       personType: "Employee",
       companyName: "AD Techno",
       companyCode: "ADT01",
@@ -168,6 +200,10 @@ export function PersonSearch() {
       personId: "P001239",
       membershipNo: "MEM123461",
       idNo: "890825-14-3344",
+      idType: "NRIC",
+      dateOfBirth: "1989-08-25",
+      gender: "Female",
+      nationality: "Malaysian",
       personType: "Employee",
       companyName: "AD Techno",
       companyCode: "ADT01",
@@ -185,6 +221,10 @@ export function PersonSearch() {
       personId: "P001240",
       membershipNo: "MEM123462",
       idNo: "910304-10-5566",
+      idType: "NRIC",
+      dateOfBirth: "1991-03-04",
+      gender: "Male",
+      nationality: "Indian",
       personType: "Dependent",
       companyName: "GC Western Division",
       companyCode: "GCW01",
@@ -240,22 +280,58 @@ export function PersonSearch() {
   }
 
   const handleSearch = () => {
-    // Use the search function from storage instead of filtering sampleData
-    const searchCriteria = {
-      personName: searchForm.personName,
-      personId: searchForm.personId,
-      idNo: searchForm.idNo,
-      membershipNo: searchForm.membershipNo,
-      personType: searchForm.personType,
-      companyName: searchForm.companyName,
-      policyNo: searchForm.policyNo,
-      status: searchForm.status,
-      includeInactive: searchForm.includeInactive,
-    }
+    if (activeTab === "single") {
+      // Use the search function from storage instead of filtering sampleData
+      const searchCriteria = {
+        personName: searchForm.personName,
+        personId: searchForm.personId,
+        idNo: searchForm.idNo,
+        membershipNo: searchForm.membershipNo,
+        personType: searchForm.personType,
+        companyName: searchForm.companyName,
+        policyNo: searchForm.policyNo,
+        status: searchForm.status,
+        includeInactive: searchForm.includeInactive,
+      }
 
-    const filteredResults = searchPersons(searchCriteria)
-    setSearchResults(filteredResults)
-    setShowResults(true)
+      const filteredResults = searchPersons(searchCriteria)
+      setSingleSearchResults(filteredResults)
+      setShowSingleResults(true)
+    } else {
+      // Bulk view search - use searchPersonGroups function
+      const bulkSearchCriteria = {
+        groupId: (document.getElementById("bulk-group-id") as HTMLInputElement)?.value || "",
+        groupName: (document.getElementById("bulk-group-name") as HTMLInputElement)?.value || "",
+        includeInactive: searchForm.includeInactive,
+      }
+
+      const groupResults = searchPersonGroups(bulkSearchCriteria)
+
+      // Convert group results to the format expected by the results table
+      const formattedResults = groupResults.map((group) => ({
+        id: group.id,
+        groupId: group.groupId,
+        groupName: group.groupName,
+        totalRecords: group.totalRecords,
+        dateUpload: group.dateUpload,
+        uploadStatus: group.uploadStatus,
+        // Add other required fields for display
+        name: group.groupName,
+        personId: group.groupId,
+        idNo: "",
+        idType: "",
+        dateOfBirth: "",
+        gender: "",
+        nationality: "",
+        status: group.uploadStatus,
+        companyName: group.companyName || "",
+        companyCode: group.companyCode || "",
+        policyNo: group.policyNo || "",
+      }))
+
+      setBulkSearchResults(formattedResults)
+      setShowBulkResults(true)
+    }
   }
 
   const handleReset = () => {
@@ -271,7 +347,14 @@ export function PersonSearch() {
       status: "",
       includeInactive: false,
     })
-    setShowResults(false)
+
+    if (activeTab === "single") {
+      setShowSingleResults(false)
+      setSingleSearchResults([])
+    } else {
+      setShowBulkResults(false)
+      setBulkSearchResults([])
+    }
   }
 
   const handleTableSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -279,36 +362,48 @@ export function PersonSearch() {
 
     if (e.target.value) {
       const term = e.target.value.toLowerCase()
-      const allPersons = getPersons()
-      const filtered = allPersons.filter(
-        (person) =>
-          person.name.toLowerCase().includes(term) ||
-          person.personId.toLowerCase().includes(term) ||
-          (person.membershipNo && person.membershipNo.toLowerCase().includes(term)) ||
-          person.idNo.toLowerCase().includes(term) ||
-          person.personType.toLowerCase().includes(term) ||
-          (person.companyName && person.companyName.toLowerCase().includes(term)) ||
-          (person.policyNo && person.policyNo.toLowerCase().includes(term)) ||
-          person.status.toLowerCase().includes(term),
-      )
-      setSearchResults(filtered)
+
+      if (activeTab === "single") {
+        const allPersons = getPersons()
+        const filtered = allPersons.filter(
+          (person) =>
+            person.name.toLowerCase().includes(term) ||
+            person.personId.toLowerCase().includes(term) ||
+            person.idNo.toLowerCase().includes(term) ||
+            (person.idType && person.idType.toLowerCase().includes(term)) ||
+            (person.gender && person.gender.toLowerCase().includes(term)) ||
+            (person.nationality && person.nationality.toLowerCase().includes(term)) ||
+            person.status.toLowerCase().includes(term),
+        )
+        setSingleSearchResults(filtered)
+      } else {
+        // Filter bulk results
+        const filtered = bulkSearchResults.filter(
+          (group) =>
+            group.groupId?.toLowerCase().includes(term) ||
+            group.groupName?.toLowerCase().includes(term) ||
+            group.uploadStatus?.toLowerCase().includes(term),
+        )
+        setBulkSearchResults(filtered)
+      }
     } else {
       // If search term is cleared, rerun the main search to restore results
       handleSearch()
     }
   }
 
-  const handlePersonClick = (person: Person) => {
+  const handlePersonClick = (person: PersonProfile) => {
     setSelectedPerson(person)
   }
 
-  const handleGroupClick = (group: Person) => {
+  const handleGroupClick = (group: PersonProfile) => {
     setSelectedGroup(group)
   }
 
   const handleBackToSearch = () => {
     setSelectedPerson(null)
     setSelectedGroup(null)
+    setShowBulkEdit(false)
   }
 
   const handleAddNewClick = () => {
@@ -319,6 +414,19 @@ export function PersonSearch() {
     }
   }
 
+  const handleBulkEditClick = () => {
+    setShowBulkEdit(true)
+  }
+
+  const handleGenerateMembershipClick = () => {
+    setShowGenerateMembership(true)
+  }
+
+  // If bulk edit screen should be shown
+  if (showBulkEdit) {
+    return <BulkEditPerson onBack={handleBackToSearch} />
+  }
+
   // If add new single screen should be shown
   if (showAddNew) {
     return <AddNewPerson onBack={() => setShowAddNew(false)} />
@@ -327,6 +435,11 @@ export function PersonSearch() {
   // If add bulk screen should be shown
   if (showAddBulk) {
     return <AddBulkPerson onBack={() => setShowAddBulk(false)} />
+  }
+
+  // If generate membership screen should be shown
+  if (showGenerateMembership) {
+    return <GenerateMembershipNo onBack={() => setShowGenerateMembership(false)} />
   }
 
   // If a group is selected, show the group upload records screen
@@ -343,7 +456,16 @@ export function PersonSearch() {
 
   // If a person is selected, show the person details screen
   if (selectedPerson) {
-    return <PersonDetails person={selectedPerson} onBack={handleBackToSearch} />
+    return (
+      <PersonDetails
+        person={selectedPerson}
+        onBack={handleBackToSearch}
+        onNavigateToFamilyMember={(personId: string) => {
+          setSelectedPerson(null)
+          setNavigateToPersonId(personId)
+        }}
+      />
+    )
   }
 
   return (
@@ -537,13 +659,13 @@ export function PersonSearch() {
           </Card>
 
           {/* Search Results Table for Single View */}
-          {showResults && (
+          {showSingleResults && (
             <Card className="p-6">
               <div className="mb-4 flex items-center justify-between">
                 <h3 className="text-xl font-bold text-slate-800">
                   Search Results{" "}
-                  {searchResults.length > 0
-                    ? `(${Math.min(searchResults.length, 50)}${searchResults.length > 50 ? " of " + searchResults.length : ""})`
+                  {singleSearchResults.length > 0
+                    ? `(${Math.min(singleSearchResults.length, 50)}${singleSearchResults.length > 50 ? " of " + singleSearchResults.length : ""})`
                     : "(No results found)"}
                 </h3>
                 <div className="flex items-center gap-4">
@@ -558,7 +680,7 @@ export function PersonSearch() {
                   </div>
                   <Button
                     className="bg-sky-600 hover:bg-sky-700 flex items-center gap-2"
-                    disabled={searchResults.length === 0}
+                    disabled={singleSearchResults.length === 0}
                   >
                     <Download className="h-4 w-4" />
                     Export
@@ -566,7 +688,7 @@ export function PersonSearch() {
                 </div>
               </div>
 
-              {searchResults.length > 0 ? (
+              {singleSearchResults.length > 0 ? (
                 <>
                   <div className="overflow-x-auto">
                     <table className="w-full border-collapse">
@@ -593,14 +715,6 @@ export function PersonSearch() {
                           </th>
                           <th className="py-3 px-2 whitespace-nowrap">
                             <div className="flex items-center">
-                              Membership No.
-                              <button className="ml-1">
-                                <ArrowUpDown className="h-4 w-4" />
-                              </button>
-                            </div>
-                          </th>
-                          <th className="py-3 px-2 whitespace-nowrap">
-                            <div className="flex items-center">
                               ID No.
                               <button className="ml-1">
                                 <ArrowUpDown className="h-4 w-4" />
@@ -609,7 +723,7 @@ export function PersonSearch() {
                           </th>
                           <th className="py-3 px-2 whitespace-nowrap">
                             <div className="flex items-center">
-                              Person Type
+                              ID Type
                               <button className="ml-1">
                                 <ArrowUpDown className="h-4 w-4" />
                               </button>
@@ -617,7 +731,7 @@ export function PersonSearch() {
                           </th>
                           <th className="py-3 px-2 whitespace-nowrap">
                             <div className="flex items-center">
-                              Company Name
+                              Date of Birth
                               <button className="ml-1">
                                 <ArrowUpDown className="h-4 w-4" />
                               </button>
@@ -625,7 +739,15 @@ export function PersonSearch() {
                           </th>
                           <th className="py-3 px-2 whitespace-nowrap">
                             <div className="flex items-center">
-                              Policy No.
+                              Gender
+                              <button className="ml-1">
+                                <ArrowUpDown className="h-4 w-4" />
+                              </button>
+                            </div>
+                          </th>
+                          <th className="py-3 px-2 whitespace-nowrap">
+                            <div className="flex items-center">
+                              Nationality
                               <button className="ml-1">
                                 <ArrowUpDown className="h-4 w-4" />
                               </button>
@@ -642,7 +764,7 @@ export function PersonSearch() {
                         </tr>
                       </thead>
                       <tbody className="divide-y text-sm">
-                        {searchResults.slice(0, 50).map((person, index) => (
+                        {singleSearchResults.slice(0, 50).map((person, index) => (
                           <tr key={person.id} className="text-slate-700 hover:bg-slate-50 cursor-pointer">
                             <td className="py-3 px-2 text-center">{index + 1}</td>
                             <td
@@ -652,11 +774,11 @@ export function PersonSearch() {
                               {person.name}
                             </td>
                             <td className="py-3 px-2">{person.personId}</td>
-                            <td className="py-3 px-2">{person.membershipNo}</td>
                             <td className="py-3 px-2">{person.idNo}</td>
-                            <td className="py-3 px-2">{person.personType}</td>
-                            <td className="py-3 px-2">{person.companyName}</td>
-                            <td className="py-3 px-2">{person.policyNo}</td>
+                            <td className="py-3 px-2">{person.idType}</td>
+                            <td className="py-3 px-2">{person.dateOfBirth}</td>
+                            <td className="py-3 px-2">{person.gender}</td>
+                            <td className="py-3 px-2">{person.nationality}</td>
                             <td className="py-3 px-2">
                               <span
                                 className={`px-2 py-1 rounded-full text-xs font-medium ${
@@ -678,8 +800,8 @@ export function PersonSearch() {
 
                   <div className="mt-4 flex items-center justify-between text-sm text-slate-500">
                     <div>
-                      Showing 1 to {Math.min(searchResults.length, 50)} of {searchResults.length} records
-                      {searchResults.length > 50 && (
+                      Showing 1 to {Math.min(singleSearchResults.length, 50)} of {singleSearchResults.length} records
+                      {singleSearchResults.length > 50 && (
                         <span className="text-amber-600 ml-2">(Limited to first 50 results)</span>
                       )}
                     </div>
@@ -713,7 +835,11 @@ export function PersonSearch() {
 
         <TabsContent value="bulk" className="space-y-6">
           <Card className="p-6">
-            <div className="mb-6 flex justify-end">
+            <div className="mb-6 flex justify-end gap-3">
+              <Button variant="outline" className="flex items-center gap-2" onClick={handleBulkEditClick}>
+                <Upload className="h-4 w-4" />
+                Bulk Update
+              </Button>
               <Button className="bg-sky-600 hover:bg-sky-700 flex items-center gap-2" onClick={handleAddNewClick}>
                 <UserPlus className="h-4 w-4" />
                 Add New
@@ -723,16 +849,16 @@ export function PersonSearch() {
             <div className="grid gap-6 md:grid-cols-2">
               <div className="space-y-2">
                 <label htmlFor="bulk-group-id" className="text-sm font-medium text-slate-700">
-                  Group ID
+                  Batch ID
                 </label>
-                <Input id="bulk-group-id" placeholder="Enter Group ID" className="w-full" />
+                <Input id="bulk-group-id" placeholder="Enter Batch ID" className="w-full" />
               </div>
 
               <div className="space-y-2">
                 <label htmlFor="bulk-group-name" className="text-sm font-medium text-slate-700">
-                  Group Name
+                  Batch Name
                 </label>
-                <Input id="bulk-group-name" placeholder="Enter Group Name" className="w-full" />
+                <Input id="bulk-group-name" placeholder="Enter Batch Name" className="w-full" />
               </div>
             </div>
 
@@ -821,7 +947,11 @@ export function PersonSearch() {
                 </div>
 
                 <div className="mt-4 flex items-center gap-2">
-                  <Checkbox id="bulk-include-inactive" />
+                  <Checkbox
+                    id="bulk-include-inactive"
+                    checked={searchForm.includeInactive}
+                    onCheckedChange={handleCheckboxChange}
+                  />
                   <label htmlFor="bulk-include-inactive" className="text-sm text-slate-700">
                     Include Inactive Records
                   </label>
@@ -840,11 +970,11 @@ export function PersonSearch() {
           </Card>
 
           {/* Search Results Table for Bulk View */}
-          {showResults && (
+          {showBulkResults && activeTab === "bulk" && (
             <Card className="p-6">
               <div className="mb-4 flex items-center justify-between">
                 <h3 className="text-xl font-bold text-slate-800">
-                  Search Results {searchResults.length > 0 ? `(${searchResults.length})` : "(No results found)"}
+                  Search Results {bulkSearchResults.length > 0 ? `(${bulkSearchResults.length})` : "(No results found)"}
                 </h3>
                 <div className="flex items-center gap-4">
                   <div className="relative">
@@ -858,7 +988,7 @@ export function PersonSearch() {
                   </div>
                   <Button
                     className="bg-sky-600 hover:bg-sky-700 flex items-center gap-2"
-                    disabled={searchResults.length === 0}
+                    disabled={bulkSearchResults.length === 0}
                   >
                     <Download className="h-4 w-4" />
                     Export
@@ -866,7 +996,7 @@ export function PersonSearch() {
                 </div>
               </div>
 
-              {searchResults.length > 0 ? (
+              {bulkSearchResults.length > 0 ? (
                 <>
                   <div className="overflow-x-auto">
                     <table className="w-full border-collapse">
@@ -877,7 +1007,7 @@ export function PersonSearch() {
                           </th>
                           <th className="py-3 px-2 whitespace-nowrap">
                             <div className="flex items-center">
-                              Group ID
+                              Batch ID
                               <button className="ml-1">
                                 <ArrowUpDown className="h-4 w-4" />
                               </button>
@@ -885,7 +1015,7 @@ export function PersonSearch() {
                           </th>
                           <th className="py-3 px-2 whitespace-nowrap">
                             <div className="flex items-center">
-                              Group Name
+                              Batch Name
                               <button className="ml-1">
                                 <ArrowUpDown className="h-4 w-4" />
                               </button>
@@ -918,7 +1048,7 @@ export function PersonSearch() {
                         </tr>
                       </thead>
                       <tbody className="divide-y text-sm">
-                        {searchResults.map((person, index) => (
+                        {bulkSearchResults.map((person, index) => (
                           <tr key={person.id} className="text-slate-700 hover:bg-slate-50">
                             <td className="py-3 px-2 text-center">{index + 1}</td>
                             <td
@@ -953,7 +1083,7 @@ export function PersonSearch() {
 
                   <div className="mt-4 flex items-center justify-between text-sm text-slate-500">
                     <div>
-                      Showing 1 to {searchResults.length} of {searchResults.length} records
+                      Showing 1 to {bulkSearchResults.length} of {bulkSearchResults.length} records
                     </div>
                     <div className="flex items-center gap-1">
                       <Button variant="outline" size="icon" className="h-8 w-8" disabled>

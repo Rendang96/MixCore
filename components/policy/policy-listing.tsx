@@ -1,178 +1,260 @@
 "use client"
 
+import { useEffect } from "react"
+
 import { useState } from "react"
-import { Search, FileText, Download, Eye, Pencil, Trash2 } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Card, CardContent } from "@/components/ui/card"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog"
-import type { CompletePolicy } from "@/lib/policy/policy-storage"
+import { Eye, Edit, Trash2, Download, Copy } from "lucide-react" // Import Copy icon
+
+interface CompletePolicy {
+  id: string
+  policyName: string
+  policyNumber: string
+  productCode?: string
+  productName?: string
+  payorCode?: string
+  payorName?: string
+  status?: string
+  effectiveDate?: string
+  expiryDate?: string
+}
+
+interface PolicyRelationshipHierarchy {
+  product?: { name: string; code: string }
+  payor?: { name: string; code: string }
+  hierarchy: string
+}
 
 interface PolicyListingProps {
   policies: CompletePolicy[]
-  onView: (policy: CompletePolicy) => void
-  onEdit: (policy: CompletePolicy) => void
-  onDelete: (policyId: string) => void
+  onView?: (policy: CompletePolicy) => void
+  onEdit?: (policy: CompletePolicy) => void
+  onDelete?: (policyId: string) => void
+  onCopy?: (policyId: string) => void // Make optional
 }
 
-export function PolicyListing({ policies, onView, onEdit, onDelete }: PolicyListingProps) {
+// Mock function to get policy relationship hierarchy
+const getPolicyRelationshipHierarchy = (policyId: string): PolicyRelationshipHierarchy => {
+  return {
+    product: { name: "Sample Product", code: "PROD001" },
+    payor: { name: "Sample Payor", code: "PAY001" },
+    hierarchy: "Payor > Product > Policy",
+  }
+}
+
+// Mock function to get member count for a policy
+const getPolicyMemberCount = (policyId: string): number => {
+  return Math.floor(Math.random() * 100) + 1
+}
+
+export function PolicyListing({ policies, onView, onEdit, onDelete, onCopy }: PolicyListingProps) {
   const [searchTerm, setSearchTerm] = useState("")
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
-  const [policyToDelete, setPolicyToDelete] = useState<string | null>(null)
+  const [filteredPolicies, setFilteredPolicies] = useState(policies)
 
-  // Filter policies based on search term
-  const filteredPolicies = policies.filter(
-    (policy) =>
-      policy.policyName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      policy.policyNumber.toLowerCase().includes(searchTerm.toLowerCase()),
-  )
+  // Update filtered policies when the `policies` prop changes
+  // This ensures the listing reflects changes from search or new policy creation
+  useEffect(() => {
+    handleSearch(searchTerm) // Re-filter with current search term
+  }, [policies])
 
-  // Handle delete confirmation
-  const handleDeleteClick = (policyId: string) => {
-    setPolicyToDelete(policyId)
-    setDeleteDialogOpen(true)
+  const handleSearch = (term: string) => {
+    setSearchTerm(term)
+    const filtered = policies.filter(
+      (policy) =>
+        policy.policyName.toLowerCase().includes(term.toLowerCase()) ||
+        policy.policyNumber.toLowerCase().includes(term.toLowerCase()) ||
+        (policy.productName && policy.productName.toLowerCase().includes(term.toLowerCase())) ||
+        (policy.payorName && policy.payorName.toLowerCase().includes(term.toLowerCase())),
+    )
+    setFilteredPolicies(filtered)
   }
 
-  const confirmDelete = () => {
-    if (policyToDelete) {
-      onDelete(policyToDelete)
-      setPolicyToDelete(null)
+  const handleView = (policy: CompletePolicy) => {
+    if (onView) {
+      onView(policy)
+    } else {
+      console.log("View policy:", policy.id)
     }
-    setDeleteDialogOpen(false)
   }
 
-  // Function to get status class based on status value
-  const getStatusClass = (status: string) => {
-    switch (status.toLowerCase()) {
-      case "active":
-        return "bg-emerald-100 text-emerald-700"
-      case "inactive":
-        return "bg-gray-100 text-gray-700"
-      case "pending":
-        return "bg-amber-100 text-amber-700"
-      case "expired":
-        return "bg-red-100 text-red-700"
-      default:
-        return "bg-blue-100 text-blue-700"
+  const handleEdit = (policy: CompletePolicy) => {
+    if (onEdit) {
+      onEdit(policy)
+    } else {
+      console.log("Edit policy:", policy.id)
     }
+  }
+
+  const handleDelete = (policy: CompletePolicy) => {
+    const memberCount = getPolicyMemberCount(policy.id)
+
+    if (memberCount > 0) {
+      alert(
+        `Cannot delete policy "${policy.policyName}" because it has ${memberCount} associated members. Please remove all members first.`,
+      )
+      return
+    }
+
+    if (confirm(`Are you sure you want to delete policy "${policy.policyName}"?`)) {
+      if (onDelete) {
+        onDelete(policy.id)
+      } else {
+        console.log("Delete policy:", policy.id)
+      }
+    }
+  }
+
+  const handleCopy = (policyId: string) => {
+    if (onCopy) {
+      onCopy(policyId)
+    } else {
+      alert("Copy functionality not available")
+    }
+  }
+
+  const showRelationshipHierarchy = (policy: CompletePolicy) => {
+    const hierarchy = getPolicyRelationshipHierarchy(policy.id)
+    const memberCount = getPolicyMemberCount(policy.id)
+
+    const message =
+      `Policy Details:\n` +
+      `Policy: ${policy.policyName}\n` +
+      `Policy Number: ${policy.policyNumber}\n` +
+      `Product: ${hierarchy.product?.name || policy.productName || "Unknown"}\n` +
+      `Payor: ${hierarchy.payor?.name || policy.payorName || "Unknown"}\n` +
+      `Members: ${memberCount}\n\n` +
+      `Hierarchy: ${hierarchy.hierarchy}`
+
+    alert(message)
+  }
+
+  const getStatusBadge = (status = "Active") => {
+    const statusClass = status === "Active" ? "bg-green-100 text-green-800" : "bg-yellow-100 text-yellow-800"
+
+    return <span className={`px-2 py-1 rounded-full text-xs font-medium ${statusClass}`}>{status}</span>
   }
 
   return (
-    <div className="mt-6">
-      <h2 className="text-lg font-semibold mb-4">Policy Listing</h2>
-      <Card className="rounded-lg border bg-white shadow-sm">
-        <CardContent className="p-6">
-          <div className="flex justify-between items-center mb-4">
-            <div className="relative w-64">
-              <Search className="absolute left-2 top-2.5 h-4 w-4 text-gray-400" />
-              <Input
-                placeholder="Search"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-8"
-              />
-            </div>
-            <Button className="bg-sky-600 hover:bg-sky-700 flex items-center gap-2">
-              <Download className="h-4 w-4" />
-              Export
-            </Button>
+    <div className="p-6">
+      <div className="mb-6">
+        <h2 className="text-2xl font-semibold mb-4">Policy Listing</h2>
+
+        {/* Search and Export */}
+        <div className="flex justify-between items-center mb-4">
+          <div className="flex items-center space-x-2">
+            <input
+              type="text"
+              placeholder="Search"
+              value={searchTerm}
+              onChange={(e) => handleSearch(e.target.value)}
+              className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
           </div>
+          <button
+            onClick={() => console.log("Export policies")} // Placeholder for export logic
+            className="flex items-center space-x-2 bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700"
+          >
+            <Download size={16} />
+            <span>Export</span>
+          </button>
+        </div>
 
-          {filteredPolicies.length > 0 ? (
-            <div className="overflow-x-auto rounded-lg border bg-white shadow-sm">
-              <Table className="w-full border-collapse">
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-12">No</TableHead>
-                    <TableHead>Policy Number</TableHead>
-                    <TableHead>Policy Name</TableHead>
-                    <TableHead>Policy Effective Date</TableHead>
-                    <TableHead>Policy Expiry Date</TableHead>
-                    <TableHead>Service Type</TableHead>
-                    <TableHead>Services Type</TableHead>
-                    <TableHead className="text-right">Action</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredPolicies.map((policy, index) => (
-                    <TableRow key={policy.id}>
-                      <TableCell>{index + 1}</TableCell>
-                      <TableCell>{policy.policyNumber}</TableCell>
-                      <TableCell>{policy.policyName}</TableCell>
-                      <TableCell>{policy.effectiveDate}</TableCell>
-                      <TableCell>{policy.expiryDate}</TableCell>
-                      <TableCell>
-                        {policy.policyName === "Prudential Enhanced Medical Care"
-                          ? "HP, SG, MT"
-                          : policy.serviceType?.serviceTypes?.length > 0
-                            ? policy.serviceType.serviceTypes.map((st) => st.code).join(", ")
-                            : "N/A"}
-                      </TableCell>
-                      <TableCell>
-                        <span
-                          className={`inline-flex rounded-full px-2 py-1 text-xs font-medium ${getStatusClass(policy.status || "Active")}`}
-                        >
-                          {policy.status || "Active"}
-                        </span>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex justify-end gap-2">
-                          <Button variant="ghost" size="icon" onClick={() => onView(policy)} title="View">
-                            <Eye className="h-4 w-4" />
-                          </Button>
-                          <Button variant="ghost" size="icon" onClick={() => onEdit(policy)} title="Edit">
-                            <Pencil className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => handleDeleteClick(policy.id)}
-                            title="Delete"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          ) : (
-            <div className="text-center py-8 text-gray-500">
-              <FileText className="mx-auto h-12 w-12 text-gray-400 mb-3" />
-              <p>No policy has been created.</p>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+        {/* Results Summary */}
+        <div className="text-sm text-gray-600 mb-4">
+          Showing {filteredPolicies.length} of {policies.length} policies
+        </div>
+      </div>
 
-      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This action cannot be undone. This will permanently delete the policy.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmDelete} className="bg-red-600 hover:bg-red-700">
-              Delete
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      {/* Table */}
+      <div className="overflow-x-auto bg-white rounded-lg shadow">
+        <table className="min-w-full">
+          <thead className="bg-gray-50">
+            <tr>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">No.</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Policy Name ↑↓
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Policy Number ↑↓
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Product ↑↓
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Payor ↑↓
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Status ↑↓
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Members ↑↓
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Action</th>
+            </tr>
+          </thead>
+          <tbody className="bg-white divide-y divide-gray-200">
+            {filteredPolicies.map((policy, index) => {
+              const memberCount = getPolicyMemberCount(policy.id)
+
+              return (
+                <tr key={policy.id} className="hover:bg-gray-50">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{index + 1}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{policy.policyName}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{policy.policyNumber}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    {policy.productName || "Unknown"}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{policy.payorName || "Unknown"}</td>
+                  <td className="px-6 py-4 whitespace-nowrap">{getStatusBadge(policy.status)}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    <button
+                      onClick={() => showRelationshipHierarchy(policy)}
+                      className="text-blue-600 hover:text-blue-800 font-medium"
+                    >
+                      {memberCount}
+                    </button>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                    <div className="flex space-x-2">
+                      <button
+                        onClick={() => handleView(policy)}
+                        className="text-blue-600 hover:text-blue-800"
+                        title="View"
+                      >
+                        <Eye size={16} />
+                      </button>
+                      <button
+                        onClick={() => handleEdit(policy)}
+                        className="text-green-600 hover:text-green-800"
+                        title="Edit"
+                      >
+                        <Edit size={16} />
+                      </button>
+                      <button
+                        onClick={() => handleCopy(policy.id)}
+                        className="text-orange-600 hover:text-orange-800"
+                        title="Copy"
+                      >
+                        <Copy size={16} />
+                      </button>
+                      <button
+                        onClick={() => handleDelete(policy)}
+                        className="text-red-600 hover:text-red-800"
+                        title="Delete"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              )
+            })}
+          </tbody>
+        </table>
+      </div>
+
+      {filteredPolicies.length === 0 && (
+        <div className="text-center py-8 text-gray-500">No policies found matching your search criteria.</div>
+      )}
     </div>
   )
 }

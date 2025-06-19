@@ -37,6 +37,14 @@ export function PayorListing({ payors, onAddNew, onEditPayor, onViewPayor, onUpd
   }
 
   const handleDelete = (payor: Payor) => {
+    // Check if payor can be deleted (has no associated products/policies)
+    const deleteCheck = PayorStorage.canDeletePayor(payor.id)
+
+    if (!deleteCheck.canDelete) {
+      alert(`Cannot delete payor: ${deleteCheck.reason}`)
+      return
+    }
+
     setSelectedPayor(payor)
     setShowDeleteDialog(true)
   }
@@ -54,6 +62,12 @@ export function PayorListing({ payors, onAddNew, onEditPayor, onViewPayor, onUpd
     }
     setShowDeleteDialog(false)
     setSelectedPayor(null)
+  }
+
+  const showRelationshipDetails = (payor: Payor) => {
+    const stats = PayorStorage.getPayorRelationshipStats(payor.id)
+    const message = `Payor: ${payor.name}\nProducts: ${stats.productCount}\nPolicies: ${stats.policyCount}`
+    alert(message)
   }
 
   return (
@@ -83,39 +97,70 @@ export function PayorListing({ payors, onAddNew, onEditPayor, onViewPayor, onUpd
                   <ArrowUpDown className="ml-1 h-4 w-4 cursor-pointer" />
                 </div>
               </th>
+              <th className="py-3 px-4 whitespace-nowrap">
+                <div className="flex items-center">
+                  Products
+                  <ArrowUpDown className="ml-1 h-4 w-4 cursor-pointer" />
+                </div>
+              </th>
+              <th className="py-3 px-4 whitespace-nowrap">
+                <div className="flex items-center">
+                  Policies
+                  <ArrowUpDown className="ml-1 h-4 w-4 cursor-pointer" />
+                </div>
+              </th>
               <th className="py-3 px-4 whitespace-nowrap">Action</th>
             </tr>
           </thead>
           <tbody className="divide-y text-sm">
-            {payors.map((payor, index) => (
-              <tr key={payor.id} className="text-slate-700">
-                <td className="py-3 px-4">{index + 1}</td>
-                <td className="py-3 px-4">{payor.name}</td>
-                <td className="py-3 px-4">{payor.code}</td>
-                <td className="py-3 px-4">
-                  <span
-                    className={`inline-flex rounded-full px-2 py-1 text-xs font-medium ${
-                      payor.status === "Active" ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"
-                    }`}
-                  >
-                    {payor.status}
-                  </span>
-                </td>
-                <td className="py-3 px-4">
-                  <div className="flex items-center gap-2">
-                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleView(payor)}>
-                      <Eye className="h-4 w-4" />
-                    </Button>
-                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleEdit(payor)}>
-                      <Pencil className="h-4 w-4" />
-                    </Button>
-                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleDelete(payor)}>
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </td>
-              </tr>
-            ))}
+            {payors.map((payor, index) => {
+              const stats = PayorStorage.getPayorRelationshipStats(payor.id)
+              return (
+                <tr key={payor.id} className="text-slate-700">
+                  <td className="py-3 px-4">{index + 1}</td>
+                  <td className="py-3 px-4">{payor.name}</td>
+                  <td className="py-3 px-4">{payor.code}</td>
+                  <td className="py-3 px-4">
+                    <span
+                      className={`inline-flex rounded-full px-2 py-1 text-xs font-medium ${
+                        payor.status === "Active" ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"
+                      }`}
+                    >
+                      {payor.status}
+                    </span>
+                  </td>
+                  <td className="py-3 px-4">
+                    <span
+                      className="text-blue-600 cursor-pointer hover:underline"
+                      onClick={() => showRelationshipDetails(payor)}
+                    >
+                      {stats.productCount}
+                    </span>
+                  </td>
+                  <td className="py-3 px-4">
+                    <span
+                      className="text-blue-600 cursor-pointer hover:underline"
+                      onClick={() => showRelationshipDetails(payor)}
+                    >
+                      {stats.policyCount}
+                    </span>
+                  </td>
+                  <td className="py-3 px-4">
+                    <div className="flex items-center gap-2">
+                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleView(payor)}>
+                        <Eye className="h-4 w-4" />
+                      </Button>
+                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleEdit(payor)}>
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleDelete(payor)}>
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </td>
+                </tr>
+              )
+            })}
           </tbody>
         </table>
       </div>

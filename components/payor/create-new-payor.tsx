@@ -158,6 +158,18 @@ export function CreateNewPayor({ onBack, onSave, initialPayor }: CreateNewPayorP
       return
     }
 
+    // Check if payor can be safely updated (if editing)
+    if (isEditing) {
+      const relationshipStats = PayorStorage.getPayorRelationshipStats(payorData.id)
+      if (relationshipStats.productCount > 0) {
+        const confirmUpdate = confirm(
+          `This payor has ${relationshipStats.productCount} associated product(s) and ${relationshipStats.policyCount} policy/policies. ` +
+            "Updating payor information will affect all related records. Do you want to continue?",
+        )
+        if (!confirmUpdate) return
+      }
+    }
+
     try {
       setIsBasicInfoSaved(true)
       setHasUnsavedChanges(false)
