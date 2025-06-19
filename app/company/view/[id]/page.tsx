@@ -59,6 +59,10 @@ export default function ViewCompanyPage() {
         return "Report Frequency"
       case "medical-provider":
         return "Medical Provider"
+      case "financial-arrangement":
+        return "Financial Arrangement"
+      case "payor":
+        return "Payor"
       case "sob":
         return "SOB"
       case "history":

@@ -31,7 +31,7 @@ export function CompanyResults() {
   }, [name, code, status, industry])
 
   const handleView = (id: number) => {
-    router.push(`/company/view/${id}`)
+    router.push(`/company/summary/${id}`)
   }
 
   const handleEdit = (id: number) => {
@@ -94,6 +94,17 @@ export function CompanyResults() {
                     </TableCell>
                     <TableCell>{company.industry || "N/A"}</TableCell>
                     <TableCell className="text-right">
+                      <span
+                        className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium mr-2 ${
+                          company.completionStatus === "Completed"
+                            ? "bg-green-100 text-green-800"
+                            : company.completionStatus === "Draft"
+                              ? "bg-amber-100 text-amber-800"
+                              : "bg-gray-100 text-gray-800"
+                        }`}
+                      >
+                        {company.completionStatus || "Not Started"}
+                      </span>
                       <Button
                         variant="ghost"
                         size="sm"

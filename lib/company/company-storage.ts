@@ -1,6 +1,85 @@
-// lib/company/company-storage.ts
+const STORAGE_KEY = "companies"
 
-// Define the Company interface
+// Add the CompanySearchCriteria interface
+export interface CompanySearchCriteria {
+  name?: string
+  code?: string
+  status?: string
+  industry?: string
+}
+
+// Add the missing interfaces
+interface Contact {
+  id: number
+  name: string
+  position: string
+  email: string
+  phone: string
+}
+
+interface OperationalSegmentation {
+  [index: number]: {
+    id: number
+    name: string
+    code: string
+    type: string
+    status: string
+    parentStructure: string
+    address: string
+    postcode: string
+    city: string
+    state: string
+    country: string
+    remarks: string
+  }
+}
+
+interface JobGrade {
+  [index: number]: {
+    category: string
+    grades: string[]
+  }
+}
+
+interface ReportFrequency {
+  [index: number]: {
+    id: string
+    reportType: string
+    reportFrequency: string
+    deliveryMethod: string
+    recipients: string
+  }
+}
+
+interface MedicalProvider {
+  providers: string[]
+}
+
+interface FinancialArrangement {
+  [index: number]: {
+    paymentTerms: string
+    billingFrequency: string
+    currency: string
+    creditLimit: string
+    blockToAccounting: boolean
+    specialTerms: string
+  }
+}
+
+interface SOB {
+  benefits: string[]
+}
+
+interface ContractHistory {
+  id: number
+  startDate: string
+  endDate: string
+  status: string
+  modifiedBy: string
+  modifiedDate: string
+}
+
+// Update the Company interface to include completionStatus
 export interface Company {
   id: number
   name: string
@@ -26,210 +105,77 @@ export interface Company {
   jobGrade?: JobGrade
   reportFrequency?: ReportFrequency
   medicalProvider?: MedicalProvider
+  financialArrangement?: FinancialArrangement
   sob?: SOB
   contractHistory?: ContractHistory[]
+  completionStatus?: string // Add this field
 }
 
-// Define additional interfaces for company details
-interface Contact {
-  id: number
-  name: string
-  position: string
-  email: string
-  phone: string
-}
-
-interface OperationalSegmentation {
-  // Remove the old properties
-  // region: string
-  // division: string
-  // department: string
-
-  // Replace with an array of structures that matches what's used in the form
-  [index: number]: {
-    id: number
-    name: string
-    code: string
-    type: string
-    status: string
-    parentStructure: string
-    address: string
-    postcode: string
-    city: string
-    state: string
-    country: string
-    remarks: string
-  }
-}
-
-interface JobGrade {
-  // Update from simple array to match the JobGradeSet structure
-  [index: number]: {
-    category: string
-    grades: string[]
-  }
-}
-
-// Update the ReportFrequency interface to match the actual structure
-interface ReportFrequency {
-  // Update from simple boolean flags to match the ReportConfig structure
-  [index: number]: {
-    id: string
-    reportType: string
-    reportFrequency: string
-    deliveryMethod: string
-    recipients: string
-  }
-}
-
-interface MedicalProvider {
-  providers: string[]
-}
-
-interface SOB {
-  benefits: string[]
-}
-
-interface ContractHistory {
-  id: number
-  startDate: string
-  endDate: string
-  status: string
-  modifiedBy: string
-  modifiedDate: string
-}
-
-// Define the search criteria interface
-export interface CompanySearchCriteria {
-  name?: string
-  code?: string
-  status?: string
-  industry?: string
-}
-
-// Local storage key for companies
-const COMPANIES_STORAGE_KEY = "companies"
-
-// Function to get companies from local storage
-export const getCompanies = (): Company[] => {
-  if (typeof window === "undefined") {
+export function getCompanies(): Company[] {
+  try {
+    const companiesString = localStorage.getItem(STORAGE_KEY)
+    return companiesString ? JSON.parse(companiesString) : []
+  } catch (error) {
+    console.error("Error getting companies from localStorage:", error)
     return []
   }
-
-  const companiesJson = localStorage.getItem(COMPANIES_STORAGE_KEY)
-  return companiesJson ? JSON.parse(companiesJson) : []
 }
 
-// Function to save companies to local storage
-const saveCompanies = (companies: Company[]) => {
-  if (typeof window === "undefined") {
-    return
-  }
-
-  localStorage.setItem(COMPANIES_STORAGE_KEY, JSON.stringify(companies))
-}
-
-// Function to add a new company
-export const addCompany = (company: Company) => {
-  const companies = getCompanies()
-
-  // Generate a new ID if not provided
-  if (!company.id) {
-    const maxId = companies.reduce((max, c) => Math.max(max, c.id), 0)
-    company.id = maxId + 1
-  }
-
-  // Check if we have operational segmentation data in the draft
+export function saveCompanies(companies: Company[]): void {
   try {
-    const draftData = localStorage.getItem("company_form_draft")
-    if (draftData) {
-      const parsedDraft = JSON.parse(draftData)
-      if (parsedDraft.operationalSegmentation && !company.operationalSegmentation) {
-        console.log("Adding operational segmentation from draft to company:", parsedDraft.operationalSegmentation)
-        company.operationalSegmentation = parsedDraft.operationalSegmentation
-      }
-
-      // Add similar checks for job grade and report frequency
-      if (parsedDraft.jobGrade && !company.jobGrade) {
-        console.log("Adding job grade from draft to company:", parsedDraft.jobGrade)
-        company.jobGrade = parsedDraft.jobGrade
-      }
-
-      if (parsedDraft.reportFrequency && !company.reportFrequency) {
-        console.log("Adding report frequency from draft to company:", parsedDraft.reportFrequency)
-        company.reportFrequency = parsedDraft.reportFrequency
-      }
-    }
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(companies))
   } catch (error) {
-    console.error("Error retrieving draft data:", error)
+    console.error("Error saving companies to localStorage:", error)
   }
-
-  // Add the new company
-  companies.push(company)
-  saveCompanies(companies)
-
-  return company
 }
 
-// Function to update an existing company
-export const updateCompany = (company: Company) => {
-  const companies = getCompanies()
-  const index = companies.findIndex((c) => c.id === company.id)
+export function addCompany(company: Company): void {
+  try {
+    const companies = getCompanies()
+    companies.push(company)
+    saveCompanies(companies)
+  } catch (error) {
+    console.error("Error adding company:", error)
+  }
+}
 
-  if (index !== -1) {
-    // Check if we have operational segmentation data in the draft
-    try {
-      const draftData = localStorage.getItem("company_form_draft")
-      if (draftData) {
-        const parsedDraft = JSON.parse(draftData)
-        if (parsedDraft.operationalSegmentation) {
-          console.log("Updating operational segmentation from draft:", parsedDraft.operationalSegmentation)
-          company.operationalSegmentation = parsedDraft.operationalSegmentation
-        }
+export function updateCompany(updatedCompany: Company): boolean {
+  try {
+    const companies = getCompanies()
+    const index = companies.findIndex((company) => company.id === updatedCompany.id)
 
-        // Add similar checks for job grade and report frequency
-        if (parsedDraft.jobGrade) {
-          console.log("Updating job grade from draft:", parsedDraft.jobGrade)
-          company.jobGrade = parsedDraft.jobGrade
-        }
-
-        if (parsedDraft.reportFrequency) {
-          console.log("Updating report frequency from draft:", parsedDraft.reportFrequency)
-          company.reportFrequency = parsedDraft.reportFrequency
-        }
-      }
-    } catch (error) {
-      console.error("Error retrieving draft data:", error)
+    if (index === -1) {
+      return false // Company not found
     }
 
-    companies[index] = company
+    companies[index] = updatedCompany
     saveCompanies(companies)
-    return company
-  }
-
-  return null
-}
-
-// Function to delete a company
-export const deleteCompany = (id: number) => {
-  const companies = getCompanies()
-  const filteredCompanies = companies.filter((c) => c.id !== id)
-
-  if (filteredCompanies.length < companies.length) {
-    saveCompanies(filteredCompanies)
     return true
+  } catch (error) {
+    console.error("Error updating company:", error)
+    return false
   }
-
-  return false
 }
 
-// Function to get a company by ID
-export const getCompanyById = (id: number): Company | null => {
-  const companies = getCompanies()
-  return companies.find((c) => c.id === id) || null
+export function deleteCompany(id: number): boolean {
+  try {
+    const companies = getCompanies()
+    const updatedCompanies = companies.filter((company) => company.id !== id)
+
+    if (updatedCompanies.length === companies.length) {
+      // Company not found
+      return false
+    }
+
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedCompanies))
+    return true
+  } catch (error) {
+    console.error("Error deleting company:", error)
+    return false
+  }
 }
 
-// Function to search companies based on criteria
+// Add the searchCompanies function
 export const searchCompanies = (criteria: CompanySearchCriteria): Company[] => {
   const companies = getCompanies()
 
@@ -267,11 +213,8 @@ export const searchCompanies = (criteria: CompanySearchCriteria): Company[] => {
   })
 }
 
-// Function to clear all companies (for testing)
-export const clearCompanies = () => {
-  if (typeof window === "undefined") {
-    return
-  }
-
-  localStorage.removeItem(COMPANIES_STORAGE_KEY)
+// Add the getCompanyById function
+export const getCompanyById = (id: number): Company | null => {
+  const companies = getCompanies()
+  return companies.find((c) => c.id === id) || null
 }

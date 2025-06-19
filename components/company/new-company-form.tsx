@@ -10,47 +10,12 @@ import { MedicalProviderForm } from "@/components/company/medical-provider-form"
 import { JobGradeForm, type JobGradeSet } from "@/components/company/job-grade-form"
 import { ReportFrequencyForm } from "@/components/company/report-frequency-form"
 import { SOBForm } from "@/components/company/sob-form"
+import { FinancialArrangementForm } from "@/components/company/financial-arrangement-form"
 import { Textarea } from "@/components/ui/textarea"
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog"
 import { addCompany } from "@/lib/company/company-storage"
+import { PayorForm } from "@/components/company/payor-form"
 
 // Add the following functions and constants before the NewCompanyForm component definition
-const COMPANY_FORM_STORAGE_KEY = "company_form_draft"
-
-const saveFormToLocalStorage = (formData: any) => {
-  try {
-    localStorage.setItem(COMPANY_FORM_STORAGE_KEY, JSON.stringify(formData))
-  } catch (error) {
-    console.error("Error saving form data to local storage:", error)
-  }
-}
-
-const loadFormFromLocalStorage = () => {
-  try {
-    const savedData = localStorage.getItem(COMPANY_FORM_STORAGE_KEY)
-    return savedData ? JSON.parse(savedData) : null
-  } catch (error) {
-    console.error("Error loading form data from local storage:", error)
-    return null
-  }
-}
-
-const clearFormFromLocalStorage = () => {
-  try {
-    localStorage.removeItem(COMPANY_FORM_STORAGE_KEY)
-  } catch (error) {
-    console.error("Error clearing form data from local storage:", error)
-  }
-}
 
 type FormStep =
   | "company-info"
@@ -60,8 +25,10 @@ type FormStep =
   | "report-frequency"
   | "medical-provider"
   | "financial-arrangement"
+  | "payor"
   | "sob"
   | "history"
+  | "summary"
 
 interface NewCompanyFormProps {
   onBack: () => void
@@ -117,51 +84,96 @@ export function NewCompanyForm({ onBack, onSave, onStepChange, initialStep = "co
   const [postcode, setPostcode] = useState<string>("")
   const [city, setCity] = useState<string>("")
   const [state, setState] = useState<string>("")
-  const [country, setCountry] = useState<string>("")
   const [operationalSegmentation, setOperationalSegmentation] = useState<any[]>([])
   const [jobGrade, setJobGrade] = useState<JobGradeSet[]>([])
   const [reportFrequency, setReportFrequency] = useState<any[]>([])
   const [medicalProvider, setMedicalProvider] = useState<any[]>([])
+  const [financialArrangement, setFinancialArrangement] = useState<any[]>([])
+  const [payor, setPayor] = useState<any[]>([])
   const [sob, setSob] = useState<any>(null)
+  const [country, setCountry] = useState<string>("")
 
   // State for contact details
   const [contacts, setContacts] = useState<Contact[]>([])
 
-  // Initialize with dummy contract history data
+  // Initialize with a single active contract history record that inherits from form data
   const [contractHistory, setContractHistory] = useState<ContractHistoryRecord[]>([
     {
       id: 1,
-      startDate: "2025-01-01", // Jan 1, 2025
-      endDate: "2026-12-31", // Dec 31, 2026
+      startDate: "", // Will be updated when contractStart changes
+      endDate: "", // Will be updated when contractEnd changes
       status: "Active",
-      modifiedBy: "Michael Johnson",
-      modifiedDate: "2024-12-18", // Dec 18, 2024
-    },
-    {
-      id: 2,
-      startDate: "2023-06-15", // June 15, 2023
-      endDate: "2024-12-31", // Dec 31, 2024
-      status: "Completed",
-      modifiedBy: "Sarah Williams",
-      modifiedDate: "2023-06-10", // June 10, 2023
-    },
-    {
-      id: 3,
-      startDate: "2022-03-01", // March 1, 2022
-      endDate: "2023-05-31", // May 31, 2023
-      status: "Completed",
-      modifiedBy: "David Chen",
-      modifiedDate: "2022-02-25", // Feb 25, 2022
-    },
-    {
-      id: 4,
-      startDate: "2021-01-01", // Jan 1, 2021
-      endDate: "2022-02-28", // Feb 28, 2022
-      status: "Terminated",
-      modifiedBy: "Emily Rodriguez",
-      modifiedDate: "2021-12-15", // Dec 15, 2021
+      modifiedBy: "System",
+      modifiedDate: new Date().toISOString().split("T")[0], // Today's date
     },
   ])
+
+  // Function to reset all form state
+  const resetAllFormData = () => {
+    setCompanyName("")
+    setCompanyCode("")
+    setSelectedStatus("active")
+    setRegistrationNo("")
+    setGstSstRegNo("")
+    setTinNo("")
+    setTinEmail("")
+    setProgramType("")
+    setIndustry("")
+    setSubIndustry("")
+    setWebsite("")
+    setPhoneNo("")
+    setAddress("")
+    setPostcode("")
+    setCity("")
+    setState("")
+    setCountry("")
+    setJoiningDate("")
+    setContractStart("")
+    setContractEnd("")
+    setSelectedCompanyType("")
+    setSelectedParentId("")
+    setHierarchyLevel("")
+    setSubsidiaries("")
+    setContacts([])
+    setOperationalSegmentation([])
+    setJobGrade([])
+    setReportFrequency([])
+    setMedicalProvider([])
+    setFinancialArrangement([])
+    setPayor([])
+    setSob(null)
+    setContractHistory([
+      {
+        id: 1,
+        startDate: "",
+        endDate: "",
+        status: "Active",
+        modifiedBy: "System",
+        modifiedDate: new Date().toISOString().split("T")[0],
+      },
+    ])
+  }
+
+  // Clear all form data when component mounts (for new company creation)
+  useEffect(() => {
+    // Clear all localStorage data for company form - comprehensive list
+    localStorage.removeItem("company_form_draft")
+    localStorage.removeItem("company-contacts")
+    localStorage.removeItem("company-operational-segmentation")
+    localStorage.removeItem("operational_structures")
+    localStorage.removeItem("company-job-grade")
+    localStorage.removeItem("company-report-configs")
+    localStorage.removeItem("company-report-frequency")
+    localStorage.removeItem("company-medical-provider")
+    localStorage.removeItem("medicalProviderConfigs")
+    localStorage.removeItem("company-financial-arrangement")
+    localStorage.removeItem("company-payor")
+    localStorage.removeItem("company-sob")
+    localStorage.removeItem("company-contract-history")
+
+    // Reset all form state
+    resetAllFormData()
+  }, []) // Empty dependency array means this runs only once when component mounts
 
   // Enhanced sample company data with parent-child relationships
   const companies: Company[] = [
@@ -225,138 +237,29 @@ export function NewCompanyForm({ onBack, onSave, onStepChange, initialStep = "co
 
   // Load saved form data when component mounts
   useEffect(() => {
-    // Load saved form data when component mounts
-    const savedFormData = loadFormFromLocalStorage()
-    if (savedFormData) {
-      // Set all the form states from saved data
-      if (savedFormData.companyName) setCompanyName(savedFormData.companyName)
-      if (savedFormData.companyCode) setCompanyCode(savedFormData.companyCode)
-      if (savedFormData.selectedStatus) setSelectedStatus(savedFormData.selectedStatus)
-      if (savedFormData.joiningDate) setJoiningDate(savedFormData.joiningDate)
-      if (savedFormData.contractStart) setContractStart(savedFormData.contractStart)
-      if (savedFormData.contractEnd) setContractEnd(savedFormData.contractEnd)
-      if (savedFormData.selectedCompanyType) setSelectedCompanyType(savedFormData.selectedCompanyType)
-      if (savedFormData.hierarchyLevel) setHierarchyLevel(savedFormData.hierarchyLevel)
-      if (savedFormData.subsidiaries) setSubsidiaries(savedFormData.subsidiaries)
-      if (savedFormData.selectedParentId) setSelectedParentId(savedFormData.selectedParentId)
-      if (savedFormData.contacts && savedFormData.contacts.length > 0) setContacts(savedFormData.contacts)
-      if (savedFormData.registrationNo) setRegistrationNo(savedFormData.registrationNo)
-      if (savedFormData.gstSstRegNo) setGstSstRegNo(savedFormData.gstSstRegNo)
-      if (savedFormData.tinNo) setTinNo(savedFormData.tinNo)
-      if (savedFormData.tinEmail) setTinEmail(savedFormData.tinEmail)
-      if (savedFormData.programType) setProgramType(savedFormData.programType)
-      if (savedFormData.industry) setIndustry(savedFormData.industry)
-      if (savedFormData.subIndustry) setSubIndustry(savedFormData.subIndustry)
-      if (savedFormData.website) setWebsite(savedFormData.website)
-      if (savedFormData.phoneNo) setPhoneNo(savedFormData.phoneNo)
-      if (savedFormData.address) setAddress(savedFormData.address)
-      if (savedFormData.postcode) setPostcode(savedFormData.postcode)
-      if (savedFormData.city) setCity(savedFormData.city)
-      if (savedFormData.state) setState(savedFormData.state)
-      if (savedFormData.country) setCountry(savedFormData.country)
-      if (savedFormData.contractHistory && savedFormData.contractHistory.length > 0)
-        setContractHistory(savedFormData.contractHistory)
-      if (savedFormData.operationalSegmentation && savedFormData.operationalSegmentation.length > 0)
-        setOperationalSegmentation(savedFormData.operationalSegmentation)
-      if (savedFormData.jobGrade && savedFormData.jobGrade.length > 0) setJobGrade(savedFormData.jobGrade)
-      if (savedFormData.reportFrequency && savedFormData.reportFrequency.length > 0)
-        setReportFrequency(savedFormData.reportFrequency)
-      if (savedFormData.medicalProvider && savedFormData.medicalProvider.length > 0)
-        setMedicalProvider(savedFormData.medicalProvider)
-      if (savedFormData.sob) setSob(savedFormData.sob)
-
-      // Set the current step if saved
-      if (savedFormData.currentStep) {
-        setCurrentStep(savedFormData.currentStep)
-        // Update URL based on saved step
-        window.history.pushState({}, "", `/company/add/${savedFormData.currentStep.replace("-", "_")}`)
-      }
-    }
-  }, [])
-
-  // Add this useEffect to save form data whenever relevant state changes
-  useEffect(() => {
-    // Collect current form data
-    const formData = {
-      currentStep,
-      companyName,
-      companyCode,
-      selectedStatus,
-      joiningDate,
-      contractStart,
-      contractEnd,
-      selectedCompanyType,
-      hierarchyLevel,
-      subsidiaries,
-      selectedParentId,
-      contacts,
-      registrationNo,
-      gstSstRegNo,
-      tinNo,
-      tinEmail,
-      programType,
-      industry,
-      subIndustry,
-      website,
-      phoneNo,
-      address,
-      postcode,
-      city,
-      state,
-      country,
-      contractHistory,
-      operationalSegmentation,
-      jobGrade,
-      reportFrequency,
-      medicalProvider,
-      sob,
-      // Add any other form fields that need to be saved
-    }
-
-    // Save to local storage
-    saveFormToLocalStorage(formData)
-  }, [
-    currentStep,
-    companyName,
-    companyCode,
-    selectedStatus,
-    joiningDate,
-    contractStart,
-    contractEnd,
-    selectedCompanyType,
-    hierarchyLevel,
-    subsidiaries,
-    selectedParentId,
-    contacts,
-    registrationNo,
-    gstSstRegNo,
-    tinNo,
-    tinEmail,
-    programType,
-    industry,
-    subIndustry,
-    website,
-    phoneNo,
-    address,
-    postcode,
-    city,
-    state,
-    country,
-    contractHistory,
-    operationalSegmentation,
-    jobGrade,
-    reportFrequency,
-    medicalProvider,
-    sob,
-    // Add any other dependencies that should trigger a save
-  ])
-
-  // Notify parent component when step changes
-  useEffect(() => {
+    // Notify parent component when step changes
     if (onStepChange) {
       onStepChange(currentStep)
     }
   }, [currentStep, onStepChange])
+
+  // Update contract history when contract start/end dates change
+  useEffect(() => {
+    if (contractStart || contractEnd) {
+      setContractHistory((prevHistory) => {
+        const updatedHistory = [...prevHistory]
+        if (updatedHistory.length > 0) {
+          updatedHistory[0] = {
+            ...updatedHistory[0],
+            startDate: contractStart || updatedHistory[0].startDate,
+            endDate: contractEnd || updatedHistory[0].endDate,
+            modifiedDate: new Date().toISOString().split("T")[0], // Update modified date when contract dates change
+          }
+        }
+        return updatedHistory
+      })
+    }
+  }, [contractStart, contractEnd])
 
   // Update parent company options and handle other company type related logic
   useEffect(() => {
@@ -453,16 +356,19 @@ export function NewCompanyForm({ onBack, onSave, onStepChange, initialStep = "co
       window.history.pushState({}, "", "/company/add/medical_provider")
     } else if (step === "financial-arrangement") {
       window.history.pushState({}, "", "/company/add/financial_arrangement")
+    } else if (step === "payor") {
+      window.history.pushState({}, "", "/company/add/payor")
     } else if (step === "sob") {
       window.history.pushState({}, "", "/company/add/sob")
     } else if (step === "history") {
       window.history.pushState({}, "", "/company/add/history")
+    } else if (step === "summary") {
+      window.history.pushState({}, "", "/company/add/summary")
     }
   }
 
   const handleNext = () => {
     if (currentStep === "company-info") {
-      // Just move to the next step without calling onSave
       setCurrentStep("contact-details")
       window.history.pushState({}, "", "/company/add/contact_details")
     } else if (currentStep === "contact-details") {
@@ -481,11 +387,17 @@ export function NewCompanyForm({ onBack, onSave, onStepChange, initialStep = "co
       setCurrentStep("financial-arrangement")
       window.history.pushState({}, "", "/company/add/financial_arrangement")
     } else if (currentStep === "financial-arrangement") {
+      setCurrentStep("payor")
+      window.history.pushState({}, "", "/company/add/payor")
+    } else if (currentStep === "payor") {
       setCurrentStep("sob")
       window.history.pushState({}, "", "/company/add/sob")
     } else if (currentStep === "sob") {
       setCurrentStep("history")
       window.history.pushState({}, "", "/company/add/history")
+    } else if (currentStep === "history") {
+      setCurrentStep("summary")
+      window.history.pushState({}, "", "/company/add/summary")
     }
   }
 
@@ -508,12 +420,18 @@ export function NewCompanyForm({ onBack, onSave, onStepChange, initialStep = "co
     } else if (currentStep === "financial-arrangement") {
       setCurrentStep("medical-provider")
       window.history.pushState({}, "", "/company/add/medical_provider")
-    } else if (currentStep === "sob") {
+    } else if (currentStep === "payor") {
       setCurrentStep("financial-arrangement")
       window.history.pushState({}, "", "/company/add/financial_arrangement")
+    } else if (currentStep === "sob") {
+      setCurrentStep("payor")
+      window.history.pushState({}, "", "/company/add/payor")
     } else if (currentStep === "history") {
       setCurrentStep("sob")
       window.history.pushState({}, "", "/company/add/sob")
+    } else if (currentStep === "summary") {
+      setCurrentStep("history")
+      window.history.pushState({}, "", "/company/add/history")
     }
   }
 
@@ -565,6 +483,8 @@ export function NewCompanyForm({ onBack, onSave, onStepChange, initialStep = "co
       // Contract History - only include if there is history
       ...(contractHistory.length > 0 && { contractHistory }),
       ...(medicalProvider.length > 0 && { medicalProvider }),
+      ...(financialArrangement.length > 0 && { financialArrangement }),
+      ...(payor.length > 0 && { payor }),
       ...(sob && { sob }),
       // The following fields will only be included if they have been populated by the user
       // through their respective form components
@@ -573,27 +493,53 @@ export function NewCompanyForm({ onBack, onSave, onStepChange, initialStep = "co
   }
 
   const handleSaveConfirm = () => {
-    // Close the dialog
     setShowConfirmDialog(false)
 
-    // Collect form data only when needed
+    // Collect form data
     const formData = collectFormData()
 
-    // Save the company data to local storage
-    addCompany(formData)
+    // Add completion status as completed
+    const completedCompanyData = {
+      ...formData,
+      completionStatus: "Completed",
+    }
 
-    // Clear the draft from local storage since it's now saved
-    clearFormFromLocalStorage()
+    // Save the company data to local storage
+    addCompany(completedCompanyData)
 
     // Save the complete company data
     if (onSave) {
-      onSave(formData)
+      onSave(completedCompanyData)
     }
 
     // Navigate back to the company search page
     onBack()
 
-    console.log("Company saved successfully:", formData)
+    console.log("Company saved successfully:", completedCompanyData)
+  }
+
+  const handleSaveAsDraft = () => {
+    // Collect form data
+    const formData = collectFormData()
+
+    // Add completion status as draft
+    const draftCompanyData = {
+      ...formData,
+      completionStatus: "Draft",
+    }
+
+    // Save the company data to local storage as a draft record
+    addCompany(draftCompanyData)
+
+    // Save the complete company data
+    if (onSave) {
+      onSave(draftCompanyData)
+    }
+
+    // Navigate back to the company search page
+    onBack()
+
+    console.log("Company saved as draft:", draftCompanyData)
   }
 
   // Helper function to determine step status
@@ -606,8 +552,10 @@ export function NewCompanyForm({ onBack, onSave, onStepChange, initialStep = "co
       "report-frequency",
       "medical-provider",
       "financial-arrangement",
+      "payor",
       "sob",
       "history",
+      "summary",
     ]
     const currentIndex = steps.indexOf(currentStep)
     const stepIndex = steps.indexOf(step)
@@ -619,12 +567,98 @@ export function NewCompanyForm({ onBack, onSave, onStepChange, initialStep = "co
 
   // Format date for display
   const formatDate = (dateString: string) => {
+    if (!dateString) return "Not set"
     const date = new Date(dateString)
     return date.toLocaleDateString("en-US", {
       year: "numeric",
       month: "short",
       day: "numeric",
     })
+  }
+
+  // Helper function to format service type for display
+  const formatServiceType = (type: string): string => {
+    if (!type) return "Not specified"
+
+    const typeMap: { [key: string]: string } = {
+      gp: "GP",
+      sp: "SP",
+      oc: "OC",
+      dt: "DT",
+      hp: "HP",
+      mt: "MT",
+    }
+
+    if (type.includes(", ")) {
+      return type
+        .split(", ")
+        .map((t) => typeMap[t] || t.toUpperCase())
+        .join(", ")
+    }
+
+    return typeMap[type] || type.toUpperCase()
+  }
+
+  // Helper function to format panelship for display
+  const formatPanelship = (panelship: string): string => {
+    if (!panelship) return "Not specified"
+
+    const panelshipMap: { [key: string]: string } = {
+      all: "All",
+      panel: "Panel",
+      select_access: "Select Access",
+      provider_group: "Provider Group", // Added for the new feature
+    }
+
+    return panelshipMap[panelship] || panelship
+  }
+
+  // Helper function to format provider type for display
+  const formatProviderType = (type: string): string => {
+    if (!type) return "Not specified"
+
+    const typeMap: { [key: string]: string } = {
+      all: "All",
+      government: "Government",
+      semi_government: "Semi-Government",
+      private: "Private",
+      corporatised: "Corporatised",
+    }
+
+    if (type.includes(", ")) {
+      return type
+        .split(", ")
+        .map((t) => typeMap[t] || t)
+        .join(", ")
+    }
+
+    return typeMap[type] || type
+  }
+
+  // Helper function to format payment method for display
+  const formatPaymentMethod = (method: string): string => {
+    if (!method) return "Not specified"
+
+    const methodMap: { [key: string]: string } = {
+      cashless: "Cashless",
+      pay_and_claim: "Pay and Claim",
+      both: "Both",
+    }
+
+    return methodMap[method] || method
+  }
+
+  // Helper function to format access rule for display
+  const formatAccessRule = (rule: string): string => {
+    if (!rule) return "Not specified"
+
+    const ruleMap: { [key: string]: string } = {
+      "direct-access": "Direct Access",
+      referral: "Referral",
+      gl: "GL",
+    }
+
+    return ruleMap[rule] || rule
   }
 
   // Function to add a contract history record
@@ -641,308 +675,373 @@ export function NewCompanyForm({ onBack, onSave, onStepChange, initialStep = "co
   }
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between mb-4">
+    <div className="space-y-6">
+      {/* Page header with title and back button */}
+      <div className="flex items-center justify-between">
         <h2 className="text-2xl font-bold text-slate-800">Company Information</h2>
         <Button variant="outline" onClick={onBack}>
           Back to Listing
         </Button>
       </div>
 
-      {/* Horizontal step navigation at the top */}
-      <div className="w-full mb-6">
-        <div className="flex items-center justify-between relative">
-          {/* Horizontal line connecting the bullets */}
-          <div className="absolute top-3.5 left-0 right-0 h-0.5 bg-gray-200 -z-10"></div>
+      {/* Horizontal step navigation */}
+      <div className="bg-gray-50 py-4 px-4 rounded-md border relative">
+        {/* Horizontal line connecting the bullets */}
+        <div className="absolute top-3.5 left-0 right-0 h-0.5 bg-gray-200 -z-10"></div>
 
-          <div className="flex items-center bg-white px-2">
-            <div className="relative">
-              <div
-                className={`flex items-center justify-center w-7 h-7 rounded-full cursor-pointer
-                ${
-                  getStepStatus("company-info") === "current"
-                    ? "bg-sky-600 text-white"
-                    : getStepStatus("company-info") === "completed"
-                      ? "bg-green-500 text-white"
-                      : "bg-slate-300 text-slate-700"
-                } font-medium text-sm`}
-                onClick={() => handleStepClick("company-info")}
-              >
-                1
-              </div>
+        {/* Wrap all step bullets and text in a single flex container */}
+        <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-2">
+          {/* Step 1: Company Info */}
+          <div
+            className="flex flex-col items-center text-center cursor-pointer px-2"
+            onClick={() => handleStepClick("company-info")}
+          >
+            <div
+              className={`flex items-center justify-center w-7 h-7 rounded-full mb-1
+          ${
+            getStepStatus("company-info") === "current"
+              ? "bg-sky-600 text-white"
+              : getStepStatus("company-info") === "completed"
+                ? "bg-green-500 text-white"
+                : "bg-slate-300 text-slate-700"
+          } font-medium text-sm`}
+            >
+              1
             </div>
             <span
-              className={`ml-2 cursor-pointer text-sm whitespace-nowrap
-              ${
-                getStepStatus("company-info") === "current"
-                  ? "font-medium text-sky-600"
-                  : getStepStatus("company-info") === "completed"
-                    ? "font-medium text-green-500"
-                    : "text-slate-600"
-              }`}
-              onClick={() => handleStepClick("company-info")}
+              className={`text-sm whitespace-nowrap
+          ${
+            getStepStatus("company-info") === "current"
+              ? "font-medium text-sky-600"
+              : getStepStatus("company-info") === "completed"
+                ? "font-medium text-green-500"
+                : "text-slate-600"
+          }`}
             >
               Company Info
             </span>
           </div>
 
-          <div className="flex items-center bg-white px-2">
-            <div className="relative">
-              <div
-                className={`flex items-center justify-center w-7 h-7 rounded-full cursor-pointer
-                ${
-                  getStepStatus("contact-details") === "current"
-                    ? "bg-sky-600 text-white"
-                    : getStepStatus("contact-details") === "completed"
-                      ? "bg-green-500 text-white"
-                      : "bg-slate-300 text-slate-700"
-                } font-medium text-sm`}
-                onClick={() => handleStepClick("contact-details")}
-              >
-                2
-              </div>
+          {/* Step 2: Contact Details */}
+          <div
+            className="flex flex-col items-center text-center cursor-pointer px-2"
+            onClick={() => handleStepClick("contact-details")}
+          >
+            <div
+              className={`flex items-center justify-center w-7 h-7 rounded-full mb-1
+          ${
+            getStepStatus("contact-details") === "current"
+              ? "bg-sky-600 text-white"
+              : getStepStatus("contact-details") === "completed"
+                ? "bg-green-500 text-white"
+                : "bg-slate-300 text-slate-700"
+          } font-medium text-sm`}
+            >
+              2
             </div>
             <span
-              className={`ml-2 cursor-pointer text-sm whitespace-nowrap
-              ${
-                getStepStatus("contact-details") === "current"
-                  ? "font-medium text-sky-600"
-                  : getStepStatus("contact-details") === "completed"
-                    ? "font-medium text-green-500"
-                    : "text-slate-600"
-              }`}
-              onClick={() => handleStepClick("contact-details")}
+              className={`text-sm whitespace-nowrap
+          ${
+            getStepStatus("contact-details") === "current"
+              ? "font-medium text-sky-600"
+              : getStepStatus("contact-details") === "completed"
+                ? "font-medium text-green-500"
+                : "text-slate-600"
+          }`}
             >
               Contact Details
             </span>
           </div>
 
-          <div className="flex items-center bg-white px-2">
-            <div className="relative">
-              <div
-                className={`flex items-center justify-center w-7 h-7 rounded-full cursor-pointer
-                ${
-                  getStepStatus("operational") === "current"
-                    ? "bg-sky-600 text-white"
-                    : getStepStatus("operational") === "completed"
-                      ? "bg-green-500 text-white"
-                      : "bg-slate-300 text-slate-700"
-                } font-medium text-sm`}
-                onClick={() => handleStepClick("operational")}
-              >
-                3
-              </div>
+          {/* Step 3: Operational Segmentation */}
+          <div
+            className="flex flex-col items-center text-center cursor-pointer px-2"
+            onClick={() => handleStepClick("operational")}
+          >
+            <div
+              className={`flex items-center justify-center w-7 h-7 rounded-full mb-1
+          ${
+            getStepStatus("operational") === "current"
+              ? "bg-sky-600 text-white"
+              : getStepStatus("operational") === "completed"
+                ? "bg-green-500 text-white"
+                : "bg-slate-300 text-slate-700"
+          } font-medium text-sm`}
+            >
+              3
             </div>
             <span
-              className={`ml-2 cursor-pointer text-sm whitespace-nowrap
-              ${
-                getStepStatus("operational") === "current"
-                  ? "font-medium text-sky-600"
-                  : getStepStatus("operational") === "completed"
-                    ? "font-medium text-green-500"
-                    : "text-slate-600"
-              }`}
-              onClick={() => handleStepClick("operational")}
+              className={`text-sm whitespace-nowrap
+          ${
+            getStepStatus("operational") === "current"
+              ? "font-medium text-sky-600"
+              : getStepStatus("operational") === "completed"
+                ? "font-medium text-green-500"
+                : "text-slate-600"
+          }`}
             >
               Operational Segmentation
             </span>
           </div>
 
-          <div className="flex items-center bg-white px-2">
-            <div className="relative">
-              <div
-                className={`flex items-center justify-center w-7 h-7 rounded-full cursor-pointer
-                ${
-                  getStepStatus("job-grade") === "current"
-                    ? "bg-sky-600 text-white"
-                    : getStepStatus("job-grade") === "completed"
-                      ? "bg-green-500 text-white"
-                      : "bg-slate-300 text-slate-700"
-                } font-medium text-sm`}
-                onClick={() => handleStepClick("job-grade")}
-              >
-                4
-              </div>
+          {/* Step 4: Job Category */}
+          <div
+            className="flex flex-col items-center text-center cursor-pointer px-2"
+            onClick={() => handleStepClick("job-grade")}
+          >
+            <div
+              className={`flex items-center justify-center w-7 h-7 rounded-full mb-1
+          ${
+            getStepStatus("job-grade") === "current"
+              ? "bg-sky-600 text-white"
+              : getStepStatus("job-grade") === "completed"
+                ? "bg-green-500 text-white"
+                : "bg-slate-300 text-slate-700"
+          } font-medium text-sm`}
+            >
+              4
             </div>
             <span
-              className={`ml-2 cursor-pointer text-sm whitespace-nowrap
-              ${
-                getStepStatus("job-grade") === "current"
-                  ? "font-medium text-sky-600"
-                  : getStepStatus("job-grade") === "completed"
-                    ? "font-medium text-green-500"
-                    : "text-slate-600"
-              }`}
-              onClick={() => handleStepClick("job-grade")}
+              className={`text-sm whitespace-nowrap
+          ${
+            getStepStatus("job-grade") === "current"
+              ? "font-medium text-sky-600"
+              : getStepStatus("job-grade") === "completed"
+                ? "font-medium text-green-500"
+                : "text-slate-600"
+          }`}
             >
-              Job Grade
+              Job Category
             </span>
           </div>
 
-          <div className="flex items-center bg-white px-2">
-            <div className="relative">
-              <div
-                className={`flex items-center justify-center w-7 h-7 rounded-full cursor-pointer
-                ${
-                  getStepStatus("report-frequency") === "current"
-                    ? "bg-sky-600 text-white"
-                    : getStepStatus("report-frequency") === "completed"
-                      ? "bg-green-500 text-white"
-                      : "bg-slate-300 text-slate-700"
-                } font-medium text-sm`}
-                onClick={() => handleStepClick("report-frequency")}
-              >
-                5
-              </div>
+          {/* Step 5: Report Frequency */}
+          <div
+            className="flex flex-col items-center text-center cursor-pointer px-2"
+            onClick={() => handleStepClick("report-frequency")}
+          >
+            <div
+              className={`flex items-center justify-center w-7 h-7 rounded-full mb-1
+          ${
+            getStepStatus("report-frequency") === "current"
+              ? "bg-sky-600 text-white"
+              : getStepStatus("report-frequency") === "completed"
+                ? "bg-green-500 text-white"
+                : "bg-slate-300 text-slate-700"
+          } font-medium text-sm`}
+            >
+              5
             </div>
             <span
-              className={`ml-2 cursor-pointer text-sm whitespace-nowrap
-              ${
-                getStepStatus("report-frequency") === "current"
-                  ? "font-medium text-sky-600"
-                  : getStepStatus("report-frequency") === "completed"
-                    ? "font-medium text-green-500"
-                    : "text-slate-600"
-              }`}
-              onClick={() => handleStepClick("report-frequency")}
+              className={`text-sm whitespace-nowrap
+          ${
+            getStepStatus("report-frequency") === "current"
+              ? "font-medium text-sky-600"
+              : getStepStatus("report-frequency") === "completed"
+                ? "font-medium text-green-500"
+                : "text-slate-600"
+          }`}
             >
               Report Frequency
             </span>
           </div>
 
-          <div className="flex items-center bg-white px-2">
-            <div className="relative">
-              <div
-                className={`flex items-center justify-center w-7 h-7 rounded-full cursor-pointer
-                ${
-                  getStepStatus("medical-provider") === "current"
-                    ? "bg-sky-600 text-white"
-                    : getStepStatus("medical-provider") === "completed"
-                      ? "bg-green-500 text-white"
-                      : "bg-slate-300 text-slate-700"
-                } font-medium text-sm`}
-                onClick={() => handleStepClick("medical-provider")}
-              >
-                6
-              </div>
+          {/* Step 6: Medical Provider */}
+          <div
+            className="flex flex-col items-center text-center cursor-pointer px-2"
+            onClick={() => handleStepClick("medical-provider")}
+          >
+            <div
+              className={`flex items-center justify-center w-7 h-7 rounded-full mb-1
+          ${
+            getStepStatus("medical-provider") === "current"
+              ? "bg-sky-600 text-white"
+              : getStepStatus("medical-provider") === "completed"
+                ? "bg-green-500 text-white"
+                : "bg-slate-300 text-slate-700"
+          } font-medium text-sm`}
+            >
+              6
             </div>
             <span
-              className={`ml-2 cursor-pointer text-sm whitespace-nowrap
-              ${
-                getStepStatus("medical-provider") === "current"
-                  ? "font-medium text-sky-600"
-                  : getStepStatus("medical-provider") === "completed"
-                    ? "font-medium text-green-500"
-                    : "text-slate-600"
-              }`}
-              onClick={() => handleStepClick("medical-provider")}
+              className={`text-sm whitespace-nowrap
+          ${
+            getStepStatus("medical-provider") === "current"
+              ? "font-medium text-sky-600"
+              : getStepStatus("medical-provider") === "completed"
+                ? "font-medium text-green-500"
+                : "text-slate-600"
+          }`}
             >
               Medical Provider
             </span>
           </div>
 
-          <div className="flex items-center bg-white px-2">
-            <div className="relative">
-              <div
-                className={`flex items-center justify-center w-7 h-7 rounded-full cursor-pointer
-              ${
-                getStepStatus("financial-arrangement") === "current"
-                  ? "bg-sky-600 text-white"
-                  : getStepStatus("financial-arrangement") === "completed"
-                    ? "bg-green-500 text-white"
-                    : "bg-slate-300 text-slate-700"
-              } font-medium text-sm`}
-                onClick={() => handleStepClick("financial-arrangement")}
-              >
-                7
-              </div>
+          {/* Step 7: Financial Arrangement */}
+          <div
+            className="flex flex-col items-center text-center cursor-pointer px-2"
+            onClick={() => handleStepClick("financial-arrangement")}
+          >
+            <div
+              className={`flex items-center justify-center w-7 h-7 rounded-full mb-1
+          ${
+            getStepStatus("financial-arrangement") === "current"
+              ? "bg-sky-600 text-white"
+              : getStepStatus("financial-arrangement") === "completed"
+                ? "bg-green-500 text-white"
+                : "bg-slate-300 text-slate-700"
+          } font-medium text-sm`}
+            >
+              7
             </div>
             <span
-              className={`ml-2 cursor-pointer text-sm whitespace-nowrap
-            ${
-              getStepStatus("financial-arrangement") === "current"
-                ? "font-medium text-sky-600"
-                : getStepStatus("financial-arrangement") === "completed"
-                  ? "font-medium text-green-500"
-                  : "text-slate-600"
-            }`}
-              onClick={() => handleStepClick("financial-arrangement")}
+              className={`text-sm whitespace-nowrap
+          ${
+            getStepStatus("financial-arrangement") === "current"
+              ? "font-medium text-sky-600"
+              : getStepStatus("financial-arrangement") === "completed"
+                ? "font-medium text-green-500"
+                : "text-slate-600"
+          }`}
             >
-              Financial arrangement
+              Financial Arrangement
             </span>
           </div>
 
-          <div className="flex items-center bg-white px-2">
-            <div className="relative">
-              <div
-                className={`flex items-center justify-center w-7 h-7 rounded-full cursor-pointer
-                ${
-                  getStepStatus("sob") === "current"
-                    ? "bg-sky-600 text-white"
-                    : getStepStatus("sob") === "completed"
-                      ? "bg-green-500 text-white"
-                      : "bg-slate-300 text-slate-700"
-                } font-medium text-sm`}
-                onClick={() => handleStepClick("sob")}
-              >
-                8
-              </div>
+          {/* Step 8: Payor */}
+          <div
+            className="flex flex-col items-center text-center cursor-pointer px-2"
+            onClick={() => handleStepClick("payor")}
+          >
+            <div
+              className={`flex items-center justify-center w-7 h-7 rounded-full mb-1
+          ${
+            getStepStatus("payor") === "current"
+              ? "bg-sky-600 text-white"
+              : getStepStatus("payor") === "completed"
+                ? "bg-green-500 text-white"
+                : "bg-slate-300 text-slate-700"
+          } font-medium text-sm`}
+            >
+              8
             </div>
             <span
-              className={`ml-2 cursor-pointer text-sm whitespace-nowrap
-              ${
-                getStepStatus("sob") === "current"
-                  ? "font-medium text-sky-600"
-                  : getStepStatus("sob") === "completed"
-                    ? "font-medium text-green-500"
-                    : "text-slate-600"
-              }`}
-              onClick={() => handleStepClick("sob")}
+              className={`text-sm whitespace-nowrap
+          ${
+            getStepStatus("payor") === "current"
+              ? "font-medium text-sky-600"
+              : getStepStatus("payor") === "completed"
+                ? "font-medium text-green-500"
+                : "text-slate-600"
+          }`}
+            >
+              Payor
+            </span>
+          </div>
+
+          {/* Step 9: SOB */}
+          <div
+            className="flex flex-col items-center text-center cursor-pointer px-2"
+            onClick={() => handleStepClick("sob")}
+          >
+            <div
+              className={`flex items-center justify-center w-7 h-7 rounded-full mb-1
+          ${
+            getStepStatus("sob") === "current"
+              ? "bg-sky-600 text-white"
+              : getStepStatus("sob") === "completed"
+                ? "bg-green-500 text-white"
+                : "bg-slate-300 text-slate-700"
+          } font-medium text-sm`}
+            >
+              9
+            </div>
+            <span
+              className={`text-sm whitespace-nowrap
+          ${
+            getStepStatus("sob") === "current"
+              ? "font-medium text-sky-600"
+              : getStepStatus("sob") === "completed"
+                ? "font-medium text-green-500"
+                : "text-slate-600"
+          }`}
             >
               SOB
             </span>
           </div>
 
-          <div className="flex items-center bg-white px-2">
-            <div className="relative">
-              <div
-                className={`flex items-center justify-center w-7 h-7 rounded-full cursor-pointer
-                ${
-                  getStepStatus("history") === "current"
-                    ? "bg-sky-600 text-white"
-                    : getStepStatus("history") === "completed"
-                      ? "bg-green-500 text-white"
-                      : "bg-slate-300 text-slate-700"
-                } font-medium text-sm`}
-                onClick={() => handleStepClick("history")}
-              >
-                9
-              </div>
+          {/* Step 10: History */}
+          <div
+            className="flex flex-col items-center text-center cursor-pointer px-2"
+            onClick={() => handleStepClick("history")}
+          >
+            <div
+              className={`flex items-center justify-center w-7 h-7 rounded-full mb-1
+          ${
+            getStepStatus("history") === "current"
+              ? "bg-sky-600 text-white"
+              : getStepStatus("history") === "completed"
+                ? "bg-green-500 text-white"
+                : "bg-slate-300 text-slate-700"
+          } font-medium text-sm`}
+            >
+              10
             </div>
             <span
-              className={`ml-2 cursor-pointer text-sm whitespace-nowrap
-              ${
-                getStepStatus("history") === "current"
-                  ? "font-medium text-sky-600"
-                  : getStepStatus("history") === "completed"
-                    ? "font-medium text-green-500"
-                    : "text-slate-600"
-              }`}
-              onClick={() => handleStepClick("history")}
+              className={`text-sm whitespace-nowrap
+          ${
+            getStepStatus("history") === "current"
+              ? "font-medium text-sky-600"
+              : getStepStatus("history") === "completed"
+                ? "font-medium text-green-500"
+                : "text-slate-600"
+          }`}
             >
               History
+            </span>
+          </div>
+
+          {/* Step 11: Summary */}
+          <div
+            className="flex flex-col items-center text-center cursor-pointer px-2"
+            onClick={() => handleStepClick("summary")}
+          >
+            <div
+              className={`flex items-center justify-center w-7 h-7 rounded-full mb-1
+          ${
+            getStepStatus("summary") === "current"
+              ? "bg-sky-600 text-white"
+              : getStepStatus("summary") === "completed"
+                ? "bg-green-500 text-white"
+                : "bg-slate-300 text-slate-700"
+          } font-medium text-sm`}
+            >
+              11
+            </div>
+            <span
+              className={`text-sm whitespace-nowrap
+          ${
+            getStepStatus("summary") === "current"
+              ? "font-medium text-sky-600"
+              : getStepStatus("summary") === "completed"
+                ? "font-medium text-green-500"
+                : "text-slate-600"
+          }`}
+            >
+              Summary
             </span>
           </div>
         </div>
       </div>
 
-      {/* Main form area - now full width */}
-      <div className="w-full bg-white">
-        {/* Keep all the existing form content exactly the same */}
+      {/* Main form content area */}
+      <div className="bg-white p-6 rounded-md border">
         {currentStep === "company-info" && (
-          <div>
-            <h3 className="text-2xl font-semibold text-slate-800 mb-6">Company Information</h3>
-            <div className="grid grid-cols-2 gap-8">
+          <div className="rounded-lg border border-slate-200 bg-slate-50 p-6 shadow-sm">
+            <h3 className="text-xl font-semibold text-slate-800 mb-6">Company Info</h3>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+              {" "}
+              {/* Changed from grid-cols-2 to grid-cols-3 */}
               <div className="space-y-2">
                 <label htmlFor="company-name" className="text-sm font-medium text-slate-700">
                   Company Name
@@ -955,7 +1054,6 @@ export function NewCompanyForm({ onBack, onSave, onStepChange, initialStep = "co
                   placeholder="Enter company name"
                 />
               </div>
-
               <div className="space-y-2">
                 <label htmlFor="company-code" className="text-sm font-medium text-slate-700">
                   Company Code
@@ -968,7 +1066,6 @@ export function NewCompanyForm({ onBack, onSave, onStepChange, initialStep = "co
                   placeholder="Auto Generated"
                 />
               </div>
-
               <div className="space-y-2">
                 <label htmlFor="status" className="text-sm font-medium text-slate-700">
                   Status
@@ -984,7 +1081,6 @@ export function NewCompanyForm({ onBack, onSave, onStepChange, initialStep = "co
                   </SelectContent>
                 </Select>
               </div>
-
               <div className="space-y-2">
                 <label htmlFor="registration-no" className="text-sm font-medium text-slate-700">
                   SSM/Registration No.
@@ -996,7 +1092,6 @@ export function NewCompanyForm({ onBack, onSave, onStepChange, initialStep = "co
                   onChange={(e) => setRegistrationNo(e.target.value)}
                 />
               </div>
-
               <div className="space-y-2">
                 <label htmlFor="gst-sst-reg-no" className="text-sm font-medium text-slate-700">
                   GST/SST Reg. No.
@@ -1008,14 +1103,12 @@ export function NewCompanyForm({ onBack, onSave, onStepChange, initialStep = "co
                   onChange={(e) => setGstSstRegNo(e.target.value)}
                 />
               </div>
-
               <div className="space-y-2">
                 <label htmlFor="tin-no" className="text-sm font-medium text-slate-700">
                   TIN No.
                 </label>
                 <Input id="tin-no" className="w-full" value={tinNo} onChange={(e) => setTinNo(e.target.value)} />
               </div>
-
               <div className="space-y-2">
                 <label htmlFor="tin-email" className="text-sm font-medium text-slate-700">
                   TIN Email
@@ -1029,7 +1122,6 @@ export function NewCompanyForm({ onBack, onSave, onStepChange, initialStep = "co
                   placeholder="Enter TIN email address"
                 />
               </div>
-
               <div className="space-y-2">
                 <label htmlFor="joining-date" className="text-sm font-medium text-slate-700">
                   Joining Date
@@ -1042,7 +1134,6 @@ export function NewCompanyForm({ onBack, onSave, onStepChange, initialStep = "co
                   onChange={(e) => setJoiningDate(e.target.value)}
                 />
               </div>
-
               <div className="space-y-2">
                 <label htmlFor="contract-start" className="text-sm font-medium text-slate-700">
                   Contract Start
@@ -1055,7 +1146,6 @@ export function NewCompanyForm({ onBack, onSave, onStepChange, initialStep = "co
                   onChange={(e) => setContractStart(e.target.value)}
                 />
               </div>
-
               <div className="space-y-2">
                 <label htmlFor="contract-end" className="text-sm font-medium text-slate-700">
                   Contract End
@@ -1068,7 +1158,6 @@ export function NewCompanyForm({ onBack, onSave, onStepChange, initialStep = "co
                   onChange={(e) => setContractEnd(e.target.value)}
                 />
               </div>
-
               <div className="space-y-2">
                 <label htmlFor="program-type" className="text-sm font-medium text-slate-700">
                   Program Type
@@ -1084,7 +1173,6 @@ export function NewCompanyForm({ onBack, onSave, onStepChange, initialStep = "co
                   </SelectContent>
                 </Select>
               </div>
-
               <div className="space-y-2">
                 <label htmlFor="company-type" className="text-sm font-medium text-slate-700">
                   Company Type
@@ -1100,7 +1188,6 @@ export function NewCompanyForm({ onBack, onSave, onStepChange, initialStep = "co
                   </SelectContent>
                 </Select>
               </div>
-
               <div className="space-y-2">
                 <label htmlFor="parent-company" className="text-sm font-medium text-slate-700">
                   Parent Company
@@ -1134,7 +1221,6 @@ export function NewCompanyForm({ onBack, onSave, onStepChange, initialStep = "co
                   </SelectContent>
                 </Select>
               </div>
-
               <div className="space-y-2">
                 <label htmlFor="hierarchy-level" className="text-sm font-medium text-slate-700">
                   Hierarchy Level
@@ -1147,8 +1233,9 @@ export function NewCompanyForm({ onBack, onSave, onStepChange, initialStep = "co
                   disabled={selectedCompanyType === "main-holding" || selectedCompanyType === "independent"}
                 />
               </div>
-
-              <div className="space-y-2">
+              <div className="space-y-2 col-span-full">
+                {" "}
+                {/* This field spans all columns */}
                 <label htmlFor="subsidiaries" className="text-sm font-medium text-slate-700">
                   Subsidiaries
                 </label>
@@ -1167,9 +1254,10 @@ export function NewCompanyForm({ onBack, onSave, onStepChange, initialStep = "co
                   }
                 />
               </div>
-
               {selectedCompanyType === "subsidiary" && (
-                <div className="space-y-2 col-span-2">
+                <div className="space-y-2 col-span-full">
+                  {" "}
+                  {/* This field spans all columns */}
                   <label className="text-sm font-medium text-slate-700">Available Parent Companies</label>
                   <div className="border rounded-md p-3 bg-slate-50">
                     <p className="text-sm text-slate-600 mb-2">
@@ -1196,9 +1284,10 @@ export function NewCompanyForm({ onBack, onSave, onStepChange, initialStep = "co
                   </div>
                 </div>
               )}
-
               {subsidiaryCompanies.length > 0 && selectedCompanyType === "main-holding" && (
-                <div className="space-y-2 col-span-2">
+                <div className="space-y-2 col-span-full">
+                  {" "}
+                  {/* This field spans all columns */}
                   <label className="text-sm font-medium text-slate-700">Companies with this Parent</label>
                   <div className="border rounded-md p-3 bg-slate-50">
                     <ul className="list-disc pl-5 space-y-1">
@@ -1211,7 +1300,6 @@ export function NewCompanyForm({ onBack, onSave, onStepChange, initialStep = "co
                   </div>
                 </div>
               )}
-
               <div className="space-y-2">
                 <label htmlFor="industry" className="text-sm font-medium text-slate-700">
                   Industry
@@ -1229,7 +1317,6 @@ export function NewCompanyForm({ onBack, onSave, onStepChange, initialStep = "co
                   </SelectContent>
                 </Select>
               </div>
-
               <div className="space-y-2">
                 <label htmlFor="sub-industry" className="text-sm font-medium text-slate-700">
                   Sub-Industry
@@ -1247,7 +1334,6 @@ export function NewCompanyForm({ onBack, onSave, onStepChange, initialStep = "co
                   </SelectContent>
                 </Select>
               </div>
-
               <div className="space-y-2">
                 <label htmlFor="website" className="text-sm font-medium text-slate-700">
                   Website
@@ -1260,21 +1346,20 @@ export function NewCompanyForm({ onBack, onSave, onStepChange, initialStep = "co
                   onChange={(e) => setWebsite(e.target.value)}
                 />
               </div>
-
               <div className="space-y-2">
                 <label htmlFor="phone-no" className="text-sm font-medium text-slate-700">
                   Phone No.
                 </label>
                 <Input id="phone-no" className="w-full" value={phoneNo} onChange={(e) => setPhoneNo(e.target.value)} />
               </div>
-
-              <div className="space-y-2 col-span-2">
+              <div className="space-y-2 col-span-full">
+                {" "}
+                {/* This field spans all columns */}
                 <label htmlFor="address" className="text-sm font-medium text-slate-700">
                   Address
                 </label>
                 <Input id="address" className="w-full" value={address} onChange={(e) => setAddress(e.target.value)} />
               </div>
-
               <div className="space-y-2">
                 <label htmlFor="postcode" className="text-sm font-medium text-slate-700">
                   Postcode
@@ -1286,7 +1371,6 @@ export function NewCompanyForm({ onBack, onSave, onStepChange, initialStep = "co
                   onChange={(e) => setPostcode(e.target.value)}
                 />
               </div>
-
               <div className="space-y-2">
                 <label htmlFor="city" className="text-sm font-medium text-slate-700">
                   City
@@ -1302,7 +1386,6 @@ export function NewCompanyForm({ onBack, onSave, onStepChange, initialStep = "co
                   </SelectContent>
                 </Select>
               </div>
-
               <div className="space-y-2">
                 <label htmlFor="state" className="text-sm font-medium text-slate-700">
                   State
@@ -1318,7 +1401,6 @@ export function NewCompanyForm({ onBack, onSave, onStepChange, initialStep = "co
                   </SelectContent>
                 </Select>
               </div>
-
               <div className="space-y-2">
                 <label htmlFor="country" className="text-sm font-medium text-slate-700">
                   Country
@@ -1387,122 +1469,16 @@ export function NewCompanyForm({ onBack, onSave, onStepChange, initialStep = "co
         )}
 
         {currentStep === "financial-arrangement" && (
-          <div>
-            <h3 className="text-2xl font-semibold text-slate-800 mb-6">Financial Arrangement</h3>
-            <div className="grid grid-cols-2 gap-8">
-              <div className="space-y-2">
-                <label htmlFor="payment-terms" className="text-sm font-medium text-slate-700">
-                  Payment Terms
-                </label>
-                <Select>
-                  <SelectTrigger id="payment-terms" className="w-full">
-                    <SelectValue placeholder="Select payment terms" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="net-15">Net 15</SelectItem>
-                    <SelectItem value="net-30">Net 30</SelectItem>
-                    <SelectItem value="net-45">Net 45</SelectItem>
-                    <SelectItem value="net-60">Net 60</SelectItem>
-                    <SelectItem value="net-90">Net 90</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+          <FinancialArrangementForm
+            onNext={handleNext}
+            onBack={handlePrevious}
+            initialData={financialArrangement}
+            onSaveData={setFinancialArrangement}
+          />
+        )}
 
-              <div className="space-y-2">
-                <label htmlFor="billing-frequency" className="text-sm font-medium text-slate-700">
-                  Billing Frequency
-                </label>
-                <Select>
-                  <SelectTrigger id="billing-frequency" className="w-full">
-                    <SelectValue placeholder="Select billing frequency" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="weekly">Weekly</SelectItem>
-                    <SelectItem value="monthly">Monthly</SelectItem>
-                    <SelectItem value="quarterly">Quarterly</SelectItem>
-                    <SelectItem value="semi-annually">Semi-annually</SelectItem>
-                    <SelectItem value="annually">Annually</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <label htmlFor="currency" className="text-sm font-medium text-slate-700">
-                  Currency
-                </label>
-                <Select>
-                  <SelectTrigger id="currency" className="w-full">
-                    <SelectValue placeholder="Select currency" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="myr">MYR - Malaysian Ringgit</SelectItem>
-                    <SelectItem value="usd">USD - US Dollar</SelectItem>
-                    <SelectItem value="sgd">SGD - Singapore Dollar</SelectItem>
-                    <SelectItem value="eur">EUR - Euro</SelectItem>
-                    <SelectItem value="gbp">GBP - British Pound</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <label htmlFor="credit-limit" className="text-sm font-medium text-slate-700">
-                  Credit Limit
-                </label>
-                <Input id="credit-limit" className="w-full" placeholder="Enter credit limit" />
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-slate-700">Block to Accounting</label>
-                <div className="flex items-center space-x-6">
-                  <div className="flex items-center space-x-2">
-                    <input
-                      type="radio"
-                      id="block-yes"
-                      name="block-accounting"
-                      value="yes"
-                      className="w-4 h-4 text-sky-600 border-gray-300 focus:ring-sky-500"
-                    />
-                    <label htmlFor="block-yes" className="text-sm text-slate-700">
-                      Yes
-                    </label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <input
-                      type="radio"
-                      id="block-no"
-                      name="block-accounting"
-                      value="no"
-                      defaultChecked
-                      className="w-4 h-4 text-sky-600 border-gray-300 focus:ring-sky-500"
-                    />
-                    <label htmlFor="block-no" className="text-sm text-slate-700">
-                      No
-                    </label>
-                  </div>
-                </div>
-              </div>
-
-              <div className="space-y-2 col-span-2">
-                <label htmlFor="special-terms" className="text-sm font-medium text-slate-700">
-                  Special Terms & Conditions
-                </label>
-                <Textarea
-                  id="special-terms"
-                  className="w-full min-h-[120px]"
-                  placeholder="Enter any special financial terms or conditions"
-                />
-              </div>
-            </div>
-
-            <div className="mt-6 flex gap-3">
-              <Button variant="outline" onClick={handlePrevious}>
-                Back
-              </Button>
-              <Button className="bg-sky-600 hover:bg-sky-700" onClick={handleNext}>
-                Save
-              </Button>
-            </div>
-          </div>
+        {currentStep === "payor" && (
+          <PayorForm onNext={handleNext} onBack={handlePrevious} initialData={payor} onSaveData={setPayor} />
         )}
 
         {currentStep === "sob" && (
@@ -1572,26 +1548,608 @@ export function NewCompanyForm({ onBack, onSave, onStepChange, initialStep = "co
               <Button variant="outline" onClick={handlePrevious}>
                 Back
               </Button>
-              <Button className="bg-sky-600 hover:bg-sky-700" onClick={() => setShowConfirmDialog(true)}>
-                Save
+              <Button className="bg-sky-600 hover:bg-sky-700" onClick={handleNext}>
+                Next
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {currentStep === "summary" && (
+          <div>
+            <h3 className="text-2xl font-semibold text-slate-800 mb-6">Summary</h3>
+            <p className="text-slate-600 mb-6">Review all the information you've entered for this company setup.</p>
+
+            {/* Company Information Summary */}
+            <div className="space-y-6">
+              {/* Company Details */}
+              <div className="border rounded-lg p-6">
+                <h4 className="text-lg font-semibold text-slate-800 mb-4 pb-2 border-l-4 border-red-500 pl-4">
+                  Company Details
+                </h4>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <span className="text-sm font-medium text-slate-600">Company Name:</span>
+                    <p className="text-slate-800">{companyName || "Not specified"}</p>
+                  </div>
+                  <div>
+                    <span className="text-sm font-medium text-slate-600">Company Code:</span>
+                    <p className="text-slate-800">{companyCode || "Not generated"}</p>
+                  </div>
+                  <div>
+                    <span className="text-sm font-medium text-slate-600">Status:</span>
+                    <p className="text-slate-800 capitalize">{selectedStatus || "Not selected"}</p>
+                  </div>
+                  <div>
+                    <span className="text-sm font-medium text-slate-600">Company Type:</span>
+                    <p className="text-slate-800">
+                      {selectedCompanyType === "main-holding"
+                        ? "Main Holding"
+                        : selectedCompanyType === "subsidiary"
+                          ? "Subsidiary"
+                          : selectedCompanyType === "independent"
+                            ? "Independent"
+                            : "Not selected"}
+                    </p>
+                  </div>
+                  <div>
+                    <span className="text-sm font-medium text-slate-600">Registration No:</span>
+                    <p className="text-slate-800">{registrationNo || "Not provided"}</p>
+                  </div>
+                  <div>
+                    <span className="text-sm font-medium text-slate-600">Industry:</span>
+                    <p className="text-slate-800 capitalize">{industry || "Not selected"}</p>
+                  </div>
+                  <div>
+                    <span className="text-sm font-medium text-slate-600">Joining Date:</span>
+                    <p className="text-slate-800">{formatDate(joiningDate)}</p>
+                  </div>
+                  <div>
+                    <span className="text-sm font-medium text-slate-600">Contract Period:</span>
+                    <p className="text-slate-800">
+                      {contractStart && contractEnd
+                        ? `${formatDate(contractStart)} - ${formatDate(contractEnd)}`
+                        : "Not specified"}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Contact Details */}
+              {contacts.length > 0 && (
+                <div className="border rounded-lg p-6">
+                  <h4 className="text-lg font-semibold text-slate-800 mb-4 pb-2 border-l-4 border-blue-500 pl-4">
+                    Contact Details
+                  </h4>
+                  <div className="space-y-3">
+                    {contacts.map((contact, index) => (
+                      <div key={index} className="border-l-4 border-sky-200 pl-4">
+                        <p className="font-medium text-slate-800">{contact.name}</p>
+                        <p className="text-sm text-slate-600">
+                          Contact Function: {contact.function || "Not specified"}
+                        </p>
+                        <p className="text-sm text-slate-600">
+                          Designation: {contact.position || contact.designation || "Not specified"}
+                        </p>
+                        <p className="text-sm text-slate-600">E-mail: {contact.email || "Not specified"}</p>
+                        <p className="text-sm text-slate-600">Phone: {contact.phone || "Not specified"}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Operational Segmentation - Enhanced Display */}
+              {operationalSegmentation.length > 0 && (
+                <div className="border rounded-lg p-6">
+                  <h4 className="text-lg font-semibold text-slate-800 mb-4 pb-2 border-l-4 border-green-500 pl-4">
+                    Operational Segmentation
+                  </h4>
+                  <div className="space-y-4">
+                    {operationalSegmentation.map((structure, index) => (
+                      <div key={index} className="border-l-4 border-sky-200 pl-4">
+                        <p className="font-medium text-slate-800">{structure.name || `Structure ${index + 1}`}</p>
+                        <div className="grid grid-cols-2 gap-2 mt-2">
+                          <div>
+                            <p className="text-sm text-slate-600">
+                              <span className="font-medium">Structure Code:</span> {structure.code || "Not specified"}
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-sm text-slate-600">
+                              <span className="font-medium">Structure Type:</span> {structure.type || "Not specified"}
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-sm text-slate-600">
+                              <span className="font-medium">Status:</span> {structure.status || "Not specified"}
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-sm text-slate-600">
+                              <span className="font-medium">Parent Structure:</span>{" "}
+                              {structure.parentStructure || "None"}
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-sm text-slate-600">
+                              <span className="font-medium">Address:</span> {structure.address || "Not specified"}
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-sm text-slate-600">
+                              <span className="font-medium">City:</span> {structure.city || "Not specified"}
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-sm text-slate-600">
+                              <span className="font-medium">State:</span> {structure.state || "Not specified"}
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-sm text-slate-600">
+                              <span className="font-medium">Country:</span> {structure.country || "Not specified"}
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-sm text-slate-600">
+                              <span className="font-medium">Postcode:</span> {structure.postcode || "Not specified"}
+                            </p>
+                          </div>
+                        </div>
+                        {structure.remarks && (
+                          <div className="mt-2">
+                            <p className="text-sm text-slate-600">
+                              <span className="font-medium">Remarks:</span> {structure.remarks}
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Job Categories */}
+              {jobGrade.length > 0 && (
+                <div className="border rounded-lg p-6">
+                  <h4 className="text-lg font-semibold text-slate-800 mb-4 pb-2 border-l-4 border-purple-500 pl-4">
+                    Job Categories
+                  </h4>
+                  <div className="space-y-4">
+                    {jobGrade.map((jobSet, index) => (
+                      <div key={index} className="border-l-4 border-sky-200 pl-4">
+                        <p className="font-medium text-slate-800">
+                          {jobSet.category === "job-grade"
+                            ? "Job Grade"
+                            : jobSet.category === "designation"
+                              ? "Designation"
+                              : jobSet.category === "employment-type"
+                                ? "Employment Type"
+                                : jobSet.category === "staff-category"
+                                  ? "Staff Category"
+                                  : jobSet.category || `Job Grade Set ${index + 1}`}
+                        </p>
+                        <div className="grid grid-cols-2 gap-2 mt-2">
+                          <div>
+                            <p className="text-sm text-slate-600">
+                              <span className="font-medium">Category:</span>{" "}
+                              {jobSet.category === "job-grade"
+                                ? "Job Grade"
+                                : jobSet.category === "designation"
+                                  ? "Designation"
+                                  : jobSet.category === "employment-type"
+                                    ? "Employment Type"
+                                    : jobSet.category === "staff-category"
+                                      ? "Staff Category"
+                                      : jobSet.category || "Not specified"}
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-sm text-slate-600">
+                              <span className="font-medium">Total Grades:</span>{" "}
+                              {jobSet.grades ? jobSet.grades.filter((grade) => grade.trim() !== "").length : 0}
+                            </p>
+                          </div>
+                        </div>
+                        {jobSet.grades && jobSet.grades.length > 0 && (
+                          <div className="mt-2">
+                            <p className="text-sm font-medium text-slate-600">Grades:</p>
+                            <div className="mt-1">
+                              <p className="text-sm text-slate-700">
+                                {jobSet.grades.filter((grade) => grade.trim() !== "").join(", ") ||
+                                  "No grades specified"}
+                              </p>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Report Frequency */}
+              {reportFrequency.length > 0 && (
+                <div className="border rounded-lg p-6">
+                  <h4 className="text-lg font-semibold text-slate-800 mb-4 pb-2 border-l-4 border-orange-500 pl-4">
+                    Report Frequency
+                  </h4>
+                  <div className="space-y-4">
+                    {reportFrequency.map((config, index) => (
+                      <div key={index} className="border-l-4 border-sky-200 pl-4">
+                        <p className="font-medium text-slate-800">{config.reportType || `Report ${index + 1}`}</p>
+                        <div className="grid grid-cols-2 gap-2 mt-2">
+                          <div>
+                            <p className="text-sm text-slate-600">
+                              <span className="font-medium">Frequency:</span>{" "}
+                              {config.reportFrequency || "Not specified"}
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-sm text-slate-600">
+                              <span className="font-medium">Delivery Method:</span>{" "}
+                              {config.deliveryMethod || "Not specified"}
+                            </p>
+                          </div>
+                        </div>
+                        {config.recipients && config.recipients.length > 0 && (
+                          <div className="mt-2">
+                            <p className="text-sm font-medium text-slate-600">Recipients:</p>
+                            <div className="mt-1">
+                              {config.recipients.map((recipient, recIndex) => (
+                                <p key={recIndex} className="text-sm text-slate-700">
+                                  • {recipient.name} ({recipient.email})
+                                </p>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Medical Provider */}
+              {medicalProvider.length > 0 && (
+                <div className="border rounded-lg p-6">
+                  <h4 className="text-lg font-semibold text-slate-800 mb-4 pb-2 border-l-4 border-teal-500 pl-4">
+                    Medical Provider
+                  </h4>
+                  <div className="space-y-4">
+                    {medicalProvider.map((provider, index) => (
+                      <div key={index} className="border-l-4 border-sky-200 pl-4">
+                        <p className="font-medium text-slate-800">{provider.name || `Provider ${index + 1}`}</p>
+                        <div className="grid grid-cols-2 gap-2 mt-2">
+                          <div>
+                            <p className="text-sm text-slate-600">
+                              <span className="font-medium">Service Type:</span>{" "}
+                              {formatServiceType(provider.serviceType)}
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-sm text-slate-600">
+                              <span className="font-medium">Panelship:</span> {formatPanelship(provider.panelship)}
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-sm text-slate-600">
+                              <span className="font-medium">Provider Type:</span>{" "}
+                              {formatProviderType(provider.providerType)}
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-sm text-slate-600">
+                              <span className="font-medium">Payment Method:</span>{" "}
+                              {formatPaymentMethod(provider.paymentMethod)}
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-sm text-slate-600">
+                              <span className="font-medium">Access Rule:</span> {formatAccessRule(provider.accessRule)}
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-sm text-slate-600">
+                              <span className="font-medium">Status:</span> {provider.status || "Not specified"}
+                            </p>
+                          </div>
+                        </div>
+                        {provider.remarks && (
+                          <div className="mt-2">
+                            <p className="text-sm text-slate-600">
+                              <span className="font-medium">Remarks:</span> {provider.remarks}
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Financial Arrangement */}
+              {financialArrangement.length > 0 && (
+                <div className="border rounded-lg p-6">
+                  <h4 className="text-lg font-semibold text-slate-800 mb-4 pb-2 border-l-4 border-indigo-500 pl-4">
+                    Financial Arrangement
+                  </h4>
+                  <div className="space-y-4">
+                    {/* TPA Fees Section */}
+                    {financialArrangement[0] && (
+                      <div className="border-l-4 border-sky-200 pl-4">
+                        <p className="font-medium text-slate-800">TPA Fees</p>
+                        <div className="grid grid-cols-2 gap-2 mt-2">
+                          <div>
+                            <p className="text-sm text-slate-600">
+                              <span className="font-medium">Payment Term:</span>{" "}
+                              {financialArrangement[0].paymentTerm || "Not specified"}
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-sm text-slate-600">
+                              <span className="font-medium">Credit Term (Days):</span>{" "}
+                              {financialArrangement[0].paymentTerms || "Not specified"}
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-sm text-slate-600">
+                              <span className="font-medium">Billing Frequency:</span>{" "}
+                              {financialArrangement[0].billingFrequency || "Not specified"}
+                            </p>
+                          </div>
+                        </div>
+                        {financialArrangement[0].specialTerms && (
+                          <div className="mt-2">
+                            <p className="text-sm text-slate-600">
+                              <span className="font-medium">Special Terms & Conditions:</span>{" "}
+                              {financialArrangement[0].specialTerms}
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Medical Claims Section */}
+                    {financialArrangement[1] && (
+                      <div className="border-l-4 border-sky-200 pl-4">
+                        <p className="font-medium text-slate-800">Medical Claims</p>
+                        <div className="grid grid-cols-2 gap-2 mt-2">
+                          <div>
+                            <p className="text-sm text-slate-600">
+                              <span className="font-medium">Credit Term (Days):</span>{" "}
+                              {financialArrangement[1].paymentTerms || "Not specified"}
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-sm text-slate-600">
+                              <span className="font-medium">Billing Frequency:</span>{" "}
+                              {financialArrangement[1].billingFrequency || "Not specified"}
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-sm text-slate-600">
+                              <span className="font-medium">Float:</span>{" "}
+                              {financialArrangement[1].float || "Not specified"}
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-sm text-slate-600">
+                              <span className="font-medium">Block to Accounting:</span>{" "}
+                              {financialArrangement[1].blockToAccounting === true
+                                ? "Yes"
+                                : financialArrangement[1].blockToAccounting === false
+                                  ? "No"
+                                  : "Not specified"}
+                            </p>
+                          </div>
+                        </div>
+                        {financialArrangement[1].specialTerms && (
+                          <div className="mt-2">
+                            <p className="text-sm text-slate-600">
+                              <span className="font-medium">Special Terms & Conditions:</span>{" "}
+                              {financialArrangement[1].specialTerms}
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Payor */}
+              {payor.length > 0 && (
+                <div className="border rounded-lg p-6">
+                  <h4 className="text-lg font-semibold text-slate-800 mb-4 pb-2 border-l-4 border-pink-500 pl-4">
+                    Payor
+                  </h4>
+                  <div className="space-y-4">
+                    {payor.map((payorItem, index) => (
+                      <div key={index} className="border-l-4 border-sky-200 pl-4">
+                        <p className="font-medium text-slate-800">{payorItem.name || `Payor ${index + 1}`}</p>
+                        <div className="grid grid-cols-2 gap-2 mt-2">
+                          <div>
+                            <p className="text-sm text-slate-600">
+                              <span className="font-medium">Payor Code:</span> {payorItem.code || "Not specified"}
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-sm text-slate-600">
+                              <span className="font-medium">Type:</span> {payorItem.type || "Not specified"}
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-sm text-slate-600">
+                              <span className="font-medium">Status:</span> {payorItem.status || "Not specified"}
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-sm text-slate-600">
+                              <span className="font-medium">Contact Person:</span>{" "}
+                              {payorItem.contactPerson || "Not specified"}
+                            </p>
+                          </div>
+                        </div>
+                        {payorItem.address && (
+                          <div className="mt-2">
+                            <p className="text-sm text-slate-600">
+                              <span className="font-medium">Address:</span> {payorItem.address}
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Schedule of Benefits (SOB) */}
+              {sob && (
+                <div className="border rounded-lg p-6">
+                  <h4 className="text-lg font-semibold text-slate-800 mb-4 pb-2 border-l-4 border-yellow-500 pl-4">
+                    Schedule of Benefits (SOB)
+                  </h4>
+                  <div className="border-l-4 border-sky-200 pl-4">
+                    <p className="font-medium text-slate-800">{sob.sobName || "SOB Configuration"}</p>
+                    <div className="grid grid-cols-2 gap-2 mt-2">
+                      <div>
+                        <p className="text-sm text-slate-600">
+                          <span className="font-medium">SOB Code:</span> {sob.sobCode || "Not specified"}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-slate-600">
+                          <span className="font-medium">Version:</span> {sob.version || "Not specified"}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-slate-600">
+                          <span className="font-medium">Effective Date:</span> {formatDate(sob.effectiveDate)}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-slate-600">
+                          <span className="font-medium">Expiry Date:</span> {formatDate(sob.expiryDate)}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-slate-600">
+                          <span className="font-medium">Status:</span> {sob.status || "Not specified"}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-slate-600">
+                          <span className="font-medium">Document Type:</span> {sob.documentType || "Not specified"}
+                        </p>
+                      </div>
+                    </div>
+                    {sob.description && (
+                      <div className="mt-2">
+                        <p className="text-sm text-slate-600">
+                          <span className="font-medium">Description:</span> {sob.description}
+                        </p>
+                      </div>
+                    )}
+                    {sob.uploadedFile && (
+                      <div className="mt-2">
+                        <p className="text-sm text-slate-600">
+                          <span className="font-medium">Uploaded Document:</span> {sob.uploadedFile.name}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Contract History */}
+              {contractHistory.length > 0 && (
+                <div className="border rounded-lg p-6">
+                  <h4 className="text-lg font-semibold text-slate-800 mb-4 pb-2 border-l-4 border-gray-500 pl-4">
+                    Contract History
+                  </h4>
+                  <div className="space-y-4">
+                    {contractHistory.map((record, index) => (
+                      <div key={record.id} className="border-l-4 border-sky-200 pl-4">
+                        <p className="font-medium text-slate-800">Contract Record {index + 1}</p>
+                        <div className="grid grid-cols-2 gap-2 mt-2">
+                          <div>
+                            <p className="text-sm text-slate-600">
+                              <span className="font-medium">Contract Start:</span> {formatDate(record.startDate)}
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-sm text-slate-600">
+                              <span className="font-medium">Contract End:</span> {formatDate(record.endDate)}
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-sm text-slate-600">
+                              <span className="font-medium">Status:</span>
+                              <span
+                                className={`ml-2 px-2 py-1 rounded-full text-xs font-medium ${
+                                  record.status === "Active"
+                                    ? "bg-green-100 text-green-800"
+                                    : record.status === "Completed"
+                                      ? "bg-blue-100 text-blue-800"
+                                      : "bg-red-100 text-red-800"
+                                }`}
+                              >
+                                {record.status}
+                              </span>
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-sm text-slate-600">
+                              <span className="font-medium">Modified By:</span> {record.modifiedBy}
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-sm text-slate-600">
+                              <span className="font-medium">Modified Date:</span> {formatDate(record.modifiedDate)}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Action buttons */}
+            <div className="mt-8 flex gap-3">
+              <Button variant="outline" onClick={handlePrevious}>
+                Back
+              </Button>
+              <Button variant="outline" onClick={handleSaveAsDraft}>
+                Save as Draft
+              </Button>
+              <Button className="bg-green-600 hover:bg-green-700" onClick={() => setShowConfirmDialog(true)}>
+                Save Company
               </Button>
             </div>
 
             {/* Confirmation Dialog */}
-            <AlertDialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Confirm New Company</AlertDialogTitle>
-                  <AlertDialogDescription>Are you sure you want to add this new company?</AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>No</AlertDialogCancel>
-                  <AlertDialogAction onClick={handleSaveConfirm} className="bg-sky-600 hover:bg-sky-700">
-                    Yes
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
+            {showConfirmDialog && (
+              <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                <div className="bg-white p-6 rounded-lg max-w-md w-full mx-4">
+                  <h3 className="text-lg font-semibold text-slate-800 mb-4">Confirm Save</h3>
+                  <p className="text-slate-600 mb-6">
+                    Are you sure you want to save this company configuration? This will create a new company record.
+                  </p>
+                  <div className="flex gap-3 justify-end">
+                    <Button variant="outline" onClick={() => setShowConfirmDialog(false)}>
+                      Cancel
+                    </Button>
+                    <Button className="bg-green-600 hover:bg-green-700" onClick={handleSaveConfirm}>
+                      Confirm Save
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>

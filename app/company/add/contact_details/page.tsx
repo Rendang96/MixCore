@@ -1,21 +1,17 @@
-import { Home } from "lucide-react"
-
 import { Breadcrumbs } from "@/components/ui/breadcrumbs"
 
-const breadcrumbItems = [
-  { label: <Home className="h-4 w-4" />, href: "/" },
-  { label: "Company", href: "/company" },
-  { label: "New Company", href: "/company/add" },
-  { label: "Contact Details" },
-]
-
-const Page = () => {
+export default function ContactDetailsPage() {
   return (
     <div>
-      <Breadcrumbs items={breadcrumbItems} />
-      <div>Contact Details Page</div>
+      <Breadcrumbs
+        breadcrumbs={[
+          { label: "Companies", href: "/company" },
+          { label: "Add Company", href: "/company/add" },
+          { label: "Contact Details", href: "/company/add/contact_details", active: true },
+        ]}
+      />
+      <h1>Contact Details</h1>
+      {/* Add your contact details form or content here */}
     </div>
   )
 }
-
-export default Page

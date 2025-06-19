@@ -33,6 +33,10 @@ export default function AddCompanyPage() {
         return "Report Frequency"
       case "medical-provider":
         return "Medical Provider"
+      case "financial-arrangement":
+        return "Financial Arrangement"
+      case "payor":
+        return "Payor"
       case "sob":
         return "SOB"
       case "history":
@@ -45,7 +49,8 @@ export default function AddCompanyPage() {
   const breadcrumbItems = [
     { label: <Home className="h-4 w-4" />, href: "/" },
     { label: "Company", href: "/company" },
-    { label: "New Company" },
+    { label: "Dashboard", href: "/company/dashboard" }, // Added Dashboard
+    { label: "Add New Company" }, // Renamed from "New Company"
     { label: getStepLabel(currentStep) },
   ]
 

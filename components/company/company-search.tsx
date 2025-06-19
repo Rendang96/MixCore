@@ -6,12 +6,17 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { searchCompanies } from "@/lib/company/company-storage"
+import { DeleteConfirmationDialog } from "@/components/ui/delete-confirmation-dialog"
+import { searchCompanies, deleteCompany } from "@/lib/company/company-storage"
 import { initializeDummyCompanies } from "@/lib/company/dummy-data"
-import { Search, Eye, Pencil, Trash2, ArrowUpDown, Download } from "lucide-react"
+import { Search, Eye, Pencil, Trash2, ArrowUpDown, Download, ArrowRight } from "lucide-react"
+import { useToast } from "@/hooks/use-toast"
+import { PageBreadcrumbs } from "@/components/page-breadcrumbs"
+import Link from "next/link"
 
 export function CompanySearch() {
   const router = useRouter()
+  const { toast } = useToast()
   const [companyName, setCompanyName] = useState("")
   const [companyCode, setCompanyCode] = useState("")
   const [status, setStatus] = useState("all")
@@ -21,6 +26,21 @@ export function CompanySearch() {
   const [searchQuery, setSearchQuery] = useState("")
   const [currentPage, setCurrentPage] = useState(1)
   const [itemsPerPage] = useState(10)
+
+  // Delete dialog state
+  const [deleteDialog, setDeleteDialog] = useState({
+    open: false,
+    companyId: null as number | null,
+    companyName: "",
+  })
+  const [isDeleting, setIsDeleting] = useState(false)
+
+  // Breadcrumb items for company search
+  const breadcrumbItems = [
+    { label: "Home", href: "/", onClick: () => {} },
+    { label: "Company", href: "/company", onClick: () => {} },
+    { label: "Search" },
+  ]
 
   // Initialize dummy data when component mounts
   useEffect(() => {
@@ -53,20 +73,62 @@ export function CompanySearch() {
   }
 
   const handleView = (id: number) => {
-    router.push(`/company/view/${id}`)
+    router.push(`/company/summary/${id}`)
   }
 
   const handleEdit = (id: number) => {
     router.push(`/company/edit/${id}`)
   }
 
-  const handleDelete = (id: number) => {
-    // This would typically show a confirmation dialog
-    alert(`Delete company with ID: ${id}`)
+  const handleDeleteClick = (id: number, name: string) => {
+    setDeleteDialog({
+      open: true,
+      companyId: id,
+      companyName: name,
+    })
+  }
+
+  const handleDeleteConfirm = async () => {
+    if (!deleteDialog.companyId) return
+
+    setIsDeleting(true)
+    try {
+      // Call the delete function
+      const success = deleteCompany(deleteDialog.companyId)
+
+      if (success) {
+        // Remove the company from the current list
+        setCompanies((prev) => prev.filter((company) => company.id !== deleteDialog.companyId))
+
+        toast({
+          title: "Company Deleted",
+          description: `${deleteDialog.companyName} has been successfully deleted.`,
+          variant: "default",
+        })
+      } else {
+        toast({
+          title: "Delete Failed",
+          description: "Failed to delete the company. Please try again.",
+          variant: "destructive",
+        })
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "An error occurred while deleting the company.",
+        variant: "destructive",
+      })
+    } finally {
+      setIsDeleting(false)
+      setDeleteDialog({ open: false, companyId: null, companyName: "" })
+    }
   }
 
   const handleExport = () => {
-    alert("Exporting company data...")
+    toast({
+      title: "Export Started",
+      description: "Company data export is being prepared...",
+    })
   }
 
   // Filter companies based on search query
@@ -88,9 +150,20 @@ export function CompanySearch() {
 
   return (
     <div className="space-y-6">
+      {/* Breadcrumbs */}
+      <PageBreadcrumbs items={breadcrumbItems} />
+
       {/* Company Search Section */}
       <div>
-        <h2 className="text-xl font-bold text-slate-800 mb-4">Company Search</h2>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-xl font-bold text-slate-800">Company Search</h2>
+          <Link href="/company">
+            <Button variant="outline" className="flex items-center gap-1">
+              <ArrowRight className="h-4 w-4 rotate-180" />
+              Back to Dashboard
+            </Button>
+          </Link>
+        </div>
         <div className="rounded-lg border bg-white p-6 shadow-sm">
           <div className="grid grid-cols-1 gap-x-6 gap-y-4 md:grid-cols-2">
             <div className="space-y-2">
@@ -157,10 +230,10 @@ export function CompanySearch() {
           </div>
 
           <div className="mt-6 flex gap-3">
-            <Button onClick={handleAddNew} className="bg-blue-600 hover:bg-blue-700">
+            <Button onClick={handleAddNew} className="bg-sky-600 hover:bg-sky-700">
               Add New
             </Button>
-            <Button onClick={handleSearch} className="bg-blue-600 hover:bg-blue-700 flex items-center gap-1">
+            <Button onClick={handleSearch} className="bg-sky-600 hover:bg-sky-700 flex items-center gap-1">
               <Search size={16} />
               Search
             </Button>
@@ -187,7 +260,7 @@ export function CompanySearch() {
                   onChange={(e) => setSearchQuery(e.target.value)}
                 />
               </div>
-              <Button onClick={handleExport} className="bg-blue-600 hover:bg-blue-700 flex items-center gap-1">
+              <Button onClick={handleExport} className="bg-sky-600 hover:bg-sky-700 text-white flex items-center gap-1">
                 <Download size={16} />
                 Export
               </Button>
@@ -248,6 +321,12 @@ export function CompanySearch() {
                         <ArrowUpDown size={14} className="ml-1" />
                       </div>
                     </TableHead>
+                    <TableHead>
+                      <div className="flex items-center">
+                        Completion Status
+                        <ArrowUpDown size={14} className="ml-1" />
+                      </div>
+                    </TableHead>
                     <TableHead className="text-center">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -268,7 +347,7 @@ export function CompanySearch() {
                                   : "bg-red-100 text-red-800"
                             }`}
                           >
-                            {company.status}
+                            {company.status.charAt(0).toUpperCase() + company.status.slice(1).toLowerCase()}
                           </span>
                         </TableCell>
                         <TableCell>RC{company.code}</TableCell>
@@ -278,6 +357,17 @@ export function CompanySearch() {
                         </TableCell>
                         <TableCell>Level {index === 0 ? 1 : index === 3 ? 3 : 2}</TableCell>
                         <TableCell>{index === 0 ? 3 : index === 1 ? 2 : index === 2 ? 1 : ""}</TableCell>
+                        <TableCell>
+                          <span
+                            className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                              company.completionStatus === "Draft"
+                                ? "bg-orange-100 text-orange-800"
+                                : "bg-green-100 text-green-800"
+                            }`}
+                          >
+                            {company.completionStatus || "Completed"}
+                          </span>
+                        </TableCell>
                         <TableCell>
                           <div className="flex justify-center space-x-2">
                             <Button
@@ -299,8 +389,8 @@ export function CompanySearch() {
                             <Button
                               variant="ghost"
                               size="icon"
-                              onClick={() => handleDelete(company.id)}
-                              className="h-8 w-8 text-slate-600 hover:text-slate-900"
+                              onClick={() => handleDeleteClick(company.id, company.name)}
+                              className="h-8 w-8 text-slate-600 hover:text-red-600"
                             >
                               <Trash2 size={16} />
                             </Button>
@@ -310,7 +400,7 @@ export function CompanySearch() {
                     ))
                   ) : (
                     <TableRow>
-                      <TableCell colSpan={10} className="h-24 text-center">
+                      <TableCell colSpan={11} className="h-24 text-center">
                         No companies found.
                       </TableCell>
                     </TableRow>
@@ -367,7 +457,7 @@ export function CompanySearch() {
                           variant={currentPage === index + 1 ? "default" : "outline"}
                           size="sm"
                           onClick={() => paginate(index + 1)}
-                          className={currentPage === index + 1 ? "bg-blue-600 hover:bg-blue-700" : ""}
+                          className={currentPage === index + 1 ? "bg-sky-600 hover:bg-sky-700" : ""}
                         >
                           {index + 1}
                         </Button>
@@ -389,6 +479,16 @@ export function CompanySearch() {
           </div>
         </div>
       )}
+
+      {/* Delete Confirmation Dialog */}
+      <DeleteConfirmationDialog
+        open={deleteDialog.open}
+        onOpenChange={(open) => setDeleteDialog((prev) => ({ ...prev, open }))}
+        title="Delete Company"
+        description={`Are you sure you want to delete "${deleteDialog.companyName}"? This action cannot be undone and will permanently remove all associated data.`}
+        onConfirm={handleDeleteConfirm}
+        isLoading={isDeleting}
+      />
     </div>
   )
 }

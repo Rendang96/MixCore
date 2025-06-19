@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { FileText } from "lucide-react"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 
 interface SOBFormProps {
   onNext: () => void
@@ -23,6 +24,7 @@ export function SOBForm({ onNext, onBack, initialData, onSaveData }: SOBFormProp
   const [remarks, setRemarks] = useState<string>(initialData?.remarks || "")
   const [fileName, setFileName] = useState<string>(initialData?.fileName || "")
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const [showPreviewDialog, setShowPreviewDialog] = useState(false)
 
   // Load initial data if provided
   useEffect(() => {
@@ -35,6 +37,22 @@ export function SOBForm({ onNext, onBack, initialData, onSaveData }: SOBFormProp
       setFileName(initialData.fileName || "")
     }
   }, [initialData])
+
+  // Add this useEffect after the existing useEffect
+  useEffect(() => {
+    if (sobName.trim()) {
+      // Generate SOB Code based on SOB Name
+      const cleanName = sobName
+        .trim()
+        .toUpperCase()
+        .replace(/[^A-Z0-9]/g, "")
+      const timestamp = Date.now().toString().slice(-4)
+      const generatedCode = `SOB-${cleanName}-${timestamp}`
+      setSobCode(generatedCode)
+    } else {
+      setSobCode("")
+    }
+  }, [sobName])
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -71,7 +89,7 @@ export function SOBForm({ onNext, onBack, initialData, onSaveData }: SOBFormProp
   }
 
   return (
-    <div className="rounded-lg border bg-white p-6 shadow-sm">
+    <div className="rounded-lg border bg-slate-50 p-6 shadow-sm">
       <h3 className="text-xl font-semibold text-slate-800 mb-6">Schedule of Benefit</h3>
 
       <div className="space-y-6">
@@ -87,13 +105,7 @@ export function SOBForm({ onNext, onBack, initialData, onSaveData }: SOBFormProp
             <label htmlFor="sob-code" className="text-sm font-medium text-slate-700">
               SOB Code
             </label>
-            <Input
-              id="sob-code"
-              placeholder="System auto generated"
-              className="w-full bg-gray-50"
-              disabled
-              value={sobCode}
-            />
+            <Input id="sob-code" placeholder="System auto generated" className="w-full" value={sobCode} readOnly />
           </div>
         </div>
 
@@ -171,6 +183,14 @@ export function SOBForm({ onNext, onBack, initialData, onSaveData }: SOBFormProp
             <Button variant="outline" className="whitespace-nowrap">
               Download
             </Button>
+            <Button
+              variant="outline"
+              className="whitespace-nowrap"
+              onClick={() => setShowPreviewDialog(true)}
+              disabled={!fileName}
+            >
+              Preview
+            </Button>
           </div>
         </div>
       </div>
@@ -183,6 +203,29 @@ export function SOBForm({ onNext, onBack, initialData, onSaveData }: SOBFormProp
           Back
         </Button>
       </div>
+      <Dialog open={showPreviewDialog} onOpenChange={setShowPreviewDialog}>
+        <DialogContent className="sm:max-w-[800px] h-[600px] flex flex-col">
+          <DialogHeader>
+            <DialogTitle>Preview: {fileName}</DialogTitle>
+            <DialogDescription>
+              This is a placeholder for the document preview. In a full application, the content of &quot;{fileName}
+              &quot; would be displayed here.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex-grow border rounded-md p-4 overflow-auto bg-gray-50 text-gray-700">
+            {fileName ? (
+              <p>
+                Preview functionality for <strong>{fileName}</strong> is not fully implemented in this demo.
+                <br />
+                In a production environment, you would see the parsed content of your document (e.g., Excel sheet data,
+                PDF viewer, etc.) here.
+              </p>
+            ) : (
+              <p>No file selected for preview.</p>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
