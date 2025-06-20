@@ -290,7 +290,7 @@ export function UnmatchedProvidersTable({ data, onDataUpdate }: UnmatchedProvide
                         Actions
                       </Button>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
+                    <DropdownMenuContent align="end" className="z-[9999]">
                       <DropdownMenuItem onClick={() => handleSuggestFixes(row)}>
                         <span role="img" aria-label="rocket emoji">
                           🚀
