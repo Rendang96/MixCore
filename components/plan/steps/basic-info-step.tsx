@@ -52,8 +52,8 @@ export function BasicInfoStep({ onProviderSelectionToggle, onSpecialRulesToggle 
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="Hybrid">Hybrid</SelectItem>
-                  <SelectItem value="Standard">Standard</SelectItem>
-                  <SelectItem value="Custom">Custom</SelectItem>
+                  <SelectItem value="Insured">Insured</SelectItem>
+                  <SelectItem value="Self-Funded">Self-Funded</SelectItem>
                 </SelectContent>
               </Select>
               <ErrorMessage name="planType" component="p" className="text-red-500 text-xs" />
@@ -64,7 +64,13 @@ export function BasicInfoStep({ onProviderSelectionToggle, onSpecialRulesToggle 
             <DatePicker
               label="Effective Date"
               date={values.effectiveDate}
-              setDate={(date) => setFieldValue("effectiveDate", date)}
+              setDate={(date) => {
+                setFieldValue("effectiveDate", date)
+                // If effective date changes and is after expiry date, clear expiry date
+                if (date && values.expiryDate && date > values.expiryDate) {
+                  setFieldValue("expiryDate", undefined)
+                }
+              }}
               minDate={new Date()} // Set minDate to today
               className={errors.effectiveDate && touched.effectiveDate ? "border-red-500" : ""}
               helperText="Plan start date cannot be in the past"

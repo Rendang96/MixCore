@@ -29,7 +29,8 @@ export function ProviderSelectionSection() {
       state: "",
       accessRule: "",
     }
-    setFieldValue("providerSelectionRecords", [...values.providerSelectionRecords, newRecord])
+    // Add new record to the top
+    setFieldValue("providerSelectionRecords", [newRecord, ...values.providerSelectionRecords])
     setNextRecordId(nextRecordId + 1)
   }
 
@@ -252,7 +253,7 @@ export function ProviderSelectionSection() {
 
             <div className="mt-4 flex justify-between items-center text-sm text-gray-600">
               <div>
-                Record #{index + 1} Summary: Establishment Types: {record.providerTypes.length} Provider Types:{" "}
+                Record #{index + 1} Summary: Establishment Types: {record.providerTypes.length} Provider Categories:{" "}
                 {record.providerCategories.length} Payment Methods: {record.paymentMethods.length}
               </div>
               <div className={cn("font-semibold", isRecordComplete ? "text-green-600" : "text-red-600")}>

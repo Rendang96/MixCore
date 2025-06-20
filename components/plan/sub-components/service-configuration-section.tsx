@@ -153,7 +153,9 @@ export function ServiceConfigurationSection() {
 
   const expandAll = () => {
     setAccordionOpenItems(
-      values.serviceConfigurations.filter((config) => config.subServices.length > 0).map((config) => config.code),
+      values.serviceConfigurations
+        .filter((config) => config.subServices.some((sub) => sub.selected)) // Only expand selected ones
+        .map((config) => config.code),
     )
   }
 
@@ -210,7 +212,7 @@ export function ServiceConfigurationSection() {
             className="w-full"
           >
             {values.serviceConfigurations
-              .filter((config) => config.subServices.length > 0) // Only show if has sub-services
+              .filter((config) => config.subServices.some((sub) => sub.selected)) // Only show if has selected sub-services
               .map((serviceConfig) => {
                 const selectedSubServicesCount = serviceConfig.subServices.filter((sub) => sub.selected).length
                 const totalSubServicesForType = serviceConfig.subServices.length
