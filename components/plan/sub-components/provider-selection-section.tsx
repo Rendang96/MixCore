@@ -196,8 +196,9 @@ export function ProviderSelectionSection() {
                     <SelectValue placeholder="Select Access" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="Open Access">Open Access</SelectItem>
-                    <SelectItem value="Closed Panel">Closed Panel</SelectItem>
+                    <SelectItem value="Panel">Panel</SelectItem>
+                    <SelectItem value="Non Panel">Non Panel</SelectItem>
+                    <SelectItem value="Select Access">Select Access</SelectItem>
                   </SelectContent>
                 </Select>
                 {recordErrors?.panelship && recordTouched?.panelship && (
@@ -241,8 +242,9 @@ export function ProviderSelectionSection() {
                     <SelectValue placeholder="Select" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="Rule A">Rule A</SelectItem>
-                    <SelectItem value="Rule B">Rule B</SelectItem>
+                    <SelectItem value="Direct Access">Direct Access</SelectItem>
+                    <SelectItem value="Referral Letter">Referral Letter</SelectItem>
+                    <SelectItem value="Guarantee Letter">Guarantee Letter</SelectItem>
                   </SelectContent>
                 </Select>
                 {recordErrors?.accessRule && recordTouched?.accessRule && (
