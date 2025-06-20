@@ -51,7 +51,8 @@ export function ProviderSelectionSection() {
     value: string,
     isChecked: boolean,
   ) => {
-    const currentArray = values.providerSelectionRecords[recordIndex][field] as string[]
+    // Ensure currentArray is always an array, even if the field was undefined
+    const currentArray = (values.providerSelectionRecords[recordIndex][field] || []) as string[]
     if (isChecked) {
       setFieldValue(`providerSelectionRecords.${recordIndex}.${field}`, [...currentArray, value])
     } else {
@@ -100,10 +101,11 @@ export function ProviderSelectionSection() {
         const recordErrors = getRecordErrors(index)
         const recordTouched = getRecordTouched(index)
 
+        // Safely access properties by providing a fallback empty array
         const isRecordComplete =
-          record.providerTypes.length > 0 &&
-          record.providerCategories.length > 0 &&
-          record.paymentMethods.length > 0 &&
+          (record.providerTypes || []).length > 0 &&
+          (record.providerCategories || []).length > 0 &&
+          (record.paymentMethods || []).length > 0 &&
           record.panelship !== "" &&
           record.state !== "" &&
           record.accessRule !== ""
@@ -131,7 +133,7 @@ export function ProviderSelectionSection() {
                     <div key={type} className="flex items-center space-x-2">
                       <Checkbox
                         id={`providerType-${record.id}-${type}`}
-                        checked={record.providerTypes.includes(type)}
+                        checked={(record.providerTypes || []).includes(type)} // Safely check
                         onCheckedChange={(checked) => handleCheckboxChange(index, "providerTypes", type, !!checked)}
                       />
                       <Label htmlFor={`providerType-${record.id}-${type}`}>{type}</Label>
@@ -150,7 +152,7 @@ export function ProviderSelectionSection() {
                     <div key={category} className="flex items-center space-x-2">
                       <Checkbox
                         id={`providerCategory-${record.id}-${category}`}
-                        checked={record.providerCategories.includes(category)}
+                        checked={(record.providerCategories || []).includes(category)} // Safely check
                         onCheckedChange={(checked) =>
                           handleCheckboxChange(index, "providerCategories", category, !!checked)
                         }
@@ -171,7 +173,7 @@ export function ProviderSelectionSection() {
                     <div key={method} className="flex items-center space-x-2">
                       <Checkbox
                         id={`paymentMethod-${record.id}-${method}`}
-                        checked={record.paymentMethods.includes(method)}
+                        checked={(record.paymentMethods || []).includes(method)} // Safely check
                         onCheckedChange={(checked) => handleCheckboxChange(index, "paymentMethods", method, !!checked)}
                       />
                       <Label htmlFor={`paymentMethod-${record.id}-${method}`}>{method}</Label>
@@ -255,8 +257,9 @@ export function ProviderSelectionSection() {
 
             <div className="mt-4 flex justify-between items-center text-sm text-gray-600">
               <div>
-                Record #{index + 1} Summary: Establishment Types: {record.providerTypes.length} Provider Categories:{" "}
-                {record.providerCategories.length} Payment Methods: {record.paymentMethods.length}
+                Record #{index + 1} Summary: Establishment Types: {(record.providerTypes || []).length} Provider
+                Categories: {(record.providerCategories || []).length} Payment Methods:{" "}
+                {(record.paymentMethods || []).length}
               </div>
               <div className={cn("font-semibold", isRecordComplete ? "text-green-600" : "text-red-600")}>
                 Configuration Status: {isRecordComplete ? "Complete" : "Incomplete"}
