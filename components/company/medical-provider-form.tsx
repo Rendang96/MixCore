@@ -126,7 +126,7 @@ export function MedicalProviderForm({ onNext, onBack, initialData, onSaveData }:
       open_panel: "Open Panel",
       close_panel: "Close Panel",
       select_access: "Select Access",
-      provider_group: "Provider Group", // New mapping
+      provider_group: "Provider Panel Catalogue", // New mapping
     }
     return panelshipMap[panelship] || panelship
   }
@@ -290,7 +290,7 @@ export function MedicalProviderForm({ onNext, onBack, initialData, onSaveData }:
     }
   }
 
-  // New: Panelship 'Provider Group' modal handlers
+  // New: Panelship 'Provider Panel Catalogue' modal handlers
   const handleOpenProviderGroupModal = () => {
     setShowProviderGroupModal(true)
   }
@@ -441,7 +441,7 @@ export function MedicalProviderForm({ onNext, onBack, initialData, onSaveData }:
                 <SelectItem value="open_panel">Open Panel</SelectItem>
                 <SelectItem value="close_panel">Close Panel</SelectItem>
                 <SelectItem value="select_access">Select Access</SelectItem>
-                <SelectItem value="provider_group">Provider Group</SelectItem> {/* New option */}
+                <SelectItem value="provider_group">Provider Panel Catalogue</SelectItem> {/* New option */}
               </SelectContent>
             </Select>
           </div>
@@ -708,13 +708,15 @@ export function MedicalProviderForm({ onNext, onBack, initialData, onSaveData }:
             </div>
           )}
 
-        {/* New: Display Selected Providers for Panelship 'Provider Group' */}
+        {/* New: Display Selected Providers for Panelship 'Provider Panel Catalogue' */}
         {currentProviderConfig.panelship === "provider_group" &&
           currentProviderConfig.providerGroupProviders &&
           currentProviderConfig.providerGroupProviders.length > 0 && (
             <div className="mb-6">
               <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 max-h-80 overflow-y-auto">
-                <h5 className="text-md font-medium text-slate-700 mb-4">Selected Providers (Provider Group)</h5>
+                <h5 className="text-md font-medium text-slate-700 mb-4">
+                  Selected Providers (Provider Panel Catalogue)
+                </h5>
 
                 {/* Group providers by type */}
                 {(() => {
@@ -1047,7 +1049,7 @@ export function MedicalProviderForm({ onNext, onBack, initialData, onSaveData }:
         initialSelectedProviders={currentProviderConfig.closePanelProviders || []}
       />
 
-      {/* New: Provider Group Selection Modal for Panelship 'Provider Group' */}
+      {/* New: Provider Panel Catalogue Selection Modal for Panelship 'Provider Panel Catalogue' */}
       <ProviderGroupSelectionModal
         isOpen={showProviderGroupModal}
         onClose={() => setShowProviderGroupModal(false)}

@@ -275,10 +275,10 @@ export function ProviderGroupSelectionModal({
         <DialogHeader className="px-6 py-4 border-b">
           <div className="flex items-center justify-between">
             <div>
-              <DialogTitle className="text-xl font-semibold">Provider Group Selection</DialogTitle>
+              <DialogTitle className="text-xl font-semibold">Provider Panel Catalogue Selection</DialogTitle>
               <p className="text-sm text-gray-600 mt-1">
-                Select providers by group affiliation. You can choose entire groups or individual providers within
-                groups.
+                Select providers by panel catalogue affiliation. You can choose entire catalogues or individual
+                providers within catalogues.
               </p>
             </div>
             <Button variant="ghost" size="sm" onClick={onClose}>
@@ -290,7 +290,7 @@ export function ProviderGroupSelectionModal({
         <div className="flex h-[600px]">
           {/* Left Panel - Provider Groups */}
           <div className="w-80 border-r bg-gray-50 p-4">
-            <h3 className="font-medium text-gray-900 mb-4">Provider Groups</h3>
+            <h3 className="font-medium text-gray-900 mb-4">Provider Panel Catalogues</h3>
             <div className="space-y-2">
               {mockProviderGroups.map((group) => (
                 <div
@@ -317,10 +317,10 @@ export function ProviderGroupSelectionModal({
                 <div className="flex-1">
                   <Select value={filterGroup} onValueChange={setFilterGroup}>
                     <SelectTrigger>
-                      <SelectValue placeholder="Filter by group" />
+                      <SelectValue placeholder="Filter by catalogue" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="all">All Groups</SelectItem>
+                      <SelectItem value="all">All Catalogues</SelectItem>
                       {mockProviderGroups.map((group) => (
                         <SelectItem key={group.id} value={group.id}>
                           {group.name}
@@ -347,7 +347,7 @@ export function ProviderGroupSelectionModal({
                 <div className="flex items-center justify-center h-full text-gray-500">
                   <div className="text-center">
                     <div className="text-4xl mb-2">👥</div>
-                    <p>Select provider groups from the left panel to view providers</p>
+                    <p>Select provider panel catalogues from the left panel to view providers</p>
                   </div>
                 </div>
               ) : filteredProviders.length === 0 ? (
@@ -410,7 +410,7 @@ export function ProviderGroupSelectionModal({
         {/* Footer */}
         <div className="px-6 py-4 border-t bg-gray-50 flex items-center justify-between">
           <div className="text-sm text-gray-600">
-            {selectedProviders.length} providers selected • Groups: {selectedGroups.length}
+            {selectedProviders.length} providers selected • Catalogues: {selectedGroups.length}
           </div>
           <div className="flex space-x-3">
             <Button variant="outline" onClick={handleCancel}>
