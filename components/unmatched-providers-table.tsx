@@ -5,7 +5,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Checkbox } from "@/components/ui/checkbox"
 import { Button } from "@/components/ui/button"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import { Input } from "@/components/ui/input"
+import { Input } from "@/components/ui/input" // Import Input for name
 import { Badge } from "@/components/ui/badge"
 import {
   Dialog,
@@ -70,7 +70,7 @@ function getSimilarityScore(str1: string, str2: string): number {
 }
 
 export function UnmatchedProvidersTable({ data, onDataUpdate }: UnmatchedProvidersTableProps) {
-  const [selectedRows, setSelectedRows] = useState<Set<string>>(Set())
+  const [selectedRows, setSelectedRows] = useState<Set<string>>(new Set()) // Corrected: added 'new'
   const [editingProvider, setEditingProvider] = useState<UnmatchedProvider | null>(null) // State for modal editing
   const [modalEditedName, setModalEditedName] = useState("")
   const [modalEditedAddress, setModalEditedAddress] = useState("")
@@ -290,7 +290,7 @@ export function UnmatchedProvidersTable({ data, onDataUpdate }: UnmatchedProvide
                         variant="outline"
                         size="sm"
                         className="z-[10000]"
-                        onClick={() => console.log("Button clicked!")} // Added this line
+                        onClick={() => console.log("Button clicked!")}
                       >
                         Actions
                       </Button>
