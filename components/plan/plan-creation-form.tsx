@@ -32,7 +32,7 @@ export function PlanCreationForm({ onBack, onSave, initialData }: PlanCreationFo
         billbackEnabled: initialData.hasBillback,
         eligibilityCriteriaEnabled: initialData.eligibility?.primaryMemberMinAge !== undefined, // Heuristic
         maternityCoverageEnabled: initialData.maternity?.membersCovered !== undefined, // Heuristic
-        providerSelectionRecords: initialData.selectedProviders || [], // Map existing selectedProviders to new structure if needed
+        selectedProviders: initialData.selectedProviders || [], // Map existing selectedProviders to new structure if needed
         serviceConfigurations: initialData.serviceConfigurations || [],
         eligibility: initialData.eligibility || {
           primaryMemberMinAge: "",
@@ -44,6 +44,8 @@ export function PlanCreationForm({ onBack, onSave, initialData }: PlanCreationFo
           maxSpouses: "",
           maxChildren: "",
           coverDisabledChildren: false,
+          disabledChildrenAgeLimitType: "",
+          disabledChildrenAgeLimitValue: "",
           spouseCoverageByGender: "No",
           spouseCoverageByEmploymentStatus: "No",
         },
@@ -66,7 +68,7 @@ export function PlanCreationForm({ onBack, onSave, initialData }: PlanCreationFo
         billbackEnabled: false,
         eligibilityCriteriaEnabled: false,
         maternityCoverageEnabled: false,
-        providerSelectionRecords: [],
+        selectedProviders: [],
         serviceConfigurations: [],
         eligibility: {
           primaryMemberMinAge: "",
@@ -78,6 +80,8 @@ export function PlanCreationForm({ onBack, onSave, initialData }: PlanCreationFo
           maxSpouses: "",
           maxChildren: "",
           coverDisabledChildren: false,
+          disabledChildrenAgeLimitType: "",
+          disabledChildrenAgeLimitValue: "",
           spouseCoverageByGender: "No",
           spouseCoverageByEmploymentStatus: "No",
         },
@@ -138,6 +142,17 @@ export function PlanCreationForm({ onBack, onSave, initialData }: PlanCreationFo
               .min(Yup.ref("maxChildAge"), "Must be greater than Max Child Age"),
             maxSpouses: Yup.number().typeError("Must be a number").required("Required").min(0, "Cannot be negative"),
             maxChildren: Yup.number().typeError("Must be a number").required("Required").min(0, "Cannot be negative"),
+            coverDisabledChildren: Yup.boolean(),
+            disabledChildrenAgeLimitType: Yup.string().when("coverDisabledChildren", {
+              is: true,
+              then: (schema) => schema.required("Required"),
+            }),
+            disabledChildrenAgeLimitValue: Yup.number().when("disabledChildrenAgeLimitType", {
+              is: "Age limit",
+              then: (schema) =>
+                schema.typeError("Must be a number").required("Required").min(0, "Age limit cannot be negative"),
+              otherwise: (schema) => schema.notRequired(),
+            }),
             spouseCoverageByGender: Yup.string().required("Required"),
             spouseCoverageByEmploymentStatus: Yup.string().required("Required"),
           }),
@@ -163,19 +178,9 @@ export function PlanCreationForm({ onBack, onSave, initialData }: PlanCreationFo
     // Step 2: Provider Selection Validation (only if enabled)
     Yup.object().shape({
       providerSelectionEnabled: Yup.boolean(),
-      providerSelectionRecords: Yup.array().when("providerSelectionEnabled", {
+      selectedProviders: Yup.array().when("providerSelectionEnabled", {
         is: true,
-        then: (schema) =>
-          schema.min(1, "At least one provider selection record is required if enabled").of(
-            Yup.object().shape({
-              providerTypes: Yup.array().min(1, "Select at least one provider type").required("Required"),
-              providerCategories: Yup.array().min(1, "Select at least one provider category").required("Required"),
-              paymentMethods: Yup.array().min(1, "Select at least one payment method").required("Required"),
-              panelship: Yup.string().required("Panelship is required"),
-              state: Yup.string().required("State is required"),
-              accessRule: Yup.string().required("Access Rule is required"),
-            }),
-          ),
+        then: (schema) => schema.min(1, "At least one provider must be selected if enabled"),
         otherwise: (schema) => schema, // No validation if disabled
       }),
     }),
@@ -204,8 +209,6 @@ export function PlanCreationForm({ onBack, onSave, initialData }: PlanCreationFo
           hasSpecialRules: values.specialRulesEnabled,
           // Map billbackEnabled to hasBillback
           hasBillback: values.billbackEnabled,
-          // Map providerSelectionRecords to selectedProviders
-          selectedProviders: values.providerSelectionRecords,
           // Map serviceConfigurations to serviceTypes (simplified for now)
           serviceTypes: values.serviceConfigurations
             .filter((s) => s.subServices.some((ss) => ss.selected))
@@ -217,7 +220,7 @@ export function PlanCreationForm({ onBack, onSave, initialData }: PlanCreationFo
           },
           configStatus: {
             basicInfo: true,
-            providerSelection: values.providerSelectionEnabled ? values.providerSelectionRecords.length > 0 : true, // If enabled, check if records exist
+            providerSelection: values.providerSelectionEnabled ? values.selectedProviders.length > 0 : true, // If enabled, check if records exist
             benefitLimits: values.benefitLimits.length > 0, // Assuming limits are added
             specialRules: values.specialRulesEnabled ? values.specialRules.length > 0 : true, // If enabled, check if rules exist
             review: true,
@@ -322,7 +325,13 @@ export function PlanCreationForm({ onBack, onSave, initialData }: PlanCreationFo
             >
               {step.id}
             </div>
-            <span className={cn("text-sm font-medium", currentStep === step.id ? "text-blue-600" : "text-gray-500")}>
+            <span
+              className={cn(
+                "text-sm font-medium cursor-pointer",
+                currentStep === step.id ? "text-blue-600" : "text-gray-500",
+              )}
+              onClick={() => setCurrentStep(step.id)}
+            >
               {step.name}
             </span>
             {index < steps.length - 1 && (
