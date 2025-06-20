@@ -9,6 +9,7 @@ import { Eye, Edit, Trash2, Search, Filter, X } from "lucide-react"
 import { ProviderConfigViewModal } from "./provider-config-view-modal"
 import { ProviderSelectionModal } from "./provider-selection-modal"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group" // Import RadioGroup components
+import { ProviderGroupSelectionModal } from "./provider-group-selection-modal"
 
 interface MedicalProviderFormProps {
   onNext: () => void
@@ -1046,8 +1047,8 @@ export function MedicalProviderForm({ onNext, onBack, initialData, onSaveData }:
         initialSelectedProviders={currentProviderConfig.closePanelProviders || []}
       />
 
-      {/* New: Provider Selection Modal for Panelship 'Provider Group' */}
-      <ProviderSelectionModal
+      {/* New: Provider Group Selection Modal for Panelship 'Provider Group' */}
+      <ProviderGroupSelectionModal
         isOpen={showProviderGroupModal}
         onClose={() => setShowProviderGroupModal(false)}
         onSave={handleSaveProviderGroupProviders}
