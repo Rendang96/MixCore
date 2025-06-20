@@ -39,9 +39,9 @@ interface Plan {
   id: string
   name: string
   type: string
-  status: string
-  createdDate: string
-  lastUpdated: string // Added lastUpdated
+  status: string // "Active", "Inactive", "Draft"
+  createdDate: string // YYYY-MM-DD
+  lastUpdated: string // YYYY-MM-DD
   effectiveDate: string
   expiryDate: string
   description?: string
@@ -100,9 +100,24 @@ export function PlanContent() {
     return `PL${String(maxId + 1).padStart(3, "0")}`
   }
 
+  // Helper to ensure plan data has default progress and configStatus
+  const ensurePlanDefaults = (plan: Plan): Plan => {
+    return {
+      ...plan,
+      progress: plan.progress || { currentStep: 0, totalSteps: 5 },
+      configStatus: plan.configStatus || {
+        basicInfo: false,
+        providerSelection: false,
+        benefitLimits: false,
+        specialRules: false,
+        review: false,
+      },
+    }
+  }
+
   // Handle viewing a plan
   const handleViewPlan = (plan: Plan) => {
-    setViewingPlan(plan)
+    setViewingPlan(ensurePlanDefaults(plan))
   }
 
   // Handle copying a plan
@@ -139,7 +154,7 @@ export function PlanContent() {
 
   // Handle editing a plan
   const handleEditPlan = (plan: Plan) => {
-    setEditingPlan(plan)
+    setEditingPlan(ensurePlanDefaults(plan)) // Ensure defaults when editing
     setIsCreating(true)
     setCopyingPlan(null) // Ensure not in copy mode
   }
@@ -223,7 +238,8 @@ export function PlanContent() {
 
   // Filter and sort plans based on search term and filters
   const filteredAndSortedPlans = useMemo(() => {
-    let tempPlans = plans.filter(
+    let tempPlans = plans.map(ensurePlanDefaults).filter(
+      // Ensure defaults for all plans
       (plan) =>
         plan.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         plan.id.toLowerCase().includes(searchTerm.toLowerCase()),
