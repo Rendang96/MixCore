@@ -284,7 +284,7 @@ export function UnmatchedProvidersTable({ data, onDataUpdate }: UnmatchedProvide
                 <TableCell>{row.issue}</TableCell>
                 {/* */}
                 <TableCell>
-                  <DropdownMenu>
+                  <DropdownMenu onOpenChange={(open) => console.log("Dropdown open state:", open)}>
                     <DropdownMenuTrigger asChild>
                       <Button variant="outline" size="sm">
                         Actions
