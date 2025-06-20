@@ -1036,7 +1036,7 @@ export function NewCompanyForm({ onBack, onSave, onStepChange, initialStep = "co
         {currentStep === "company-info" && (
           <div className="rounded-lg border border-slate-200 bg-slate-50 p-6 shadow-sm">
             <h3 className="text-xl font-semibold text-slate-800 mb-6">Company Info</h3>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
               {" "}
               {/* Changed from grid-cols-2 to grid-cols-3 */}
               <div className="space-y-2">
@@ -1230,7 +1230,7 @@ export function NewCompanyForm({ onBack, onSave, onStepChange, initialStep = "co
                   disabled={selectedCompanyType === "main-holding" || selectedCompanyType === "independent"}
                 />
               </div>
-              <div className="space-y-2 col-span-full">
+              <div className="space-y-2 col-span-4">
                 {" "}
                 {/* This field spans all columns */}
                 <label htmlFor="subsidiaries" className="text-sm font-medium text-slate-700">
@@ -1252,7 +1252,7 @@ export function NewCompanyForm({ onBack, onSave, onStepChange, initialStep = "co
                 />
               </div>
               {selectedCompanyType === "subsidiary" && (
-                <div className="space-y-2 col-span-full">
+                <div className="space-y-2 col-span-4">
                   {" "}
                   {/* This field spans all columns */}
                   <label className="text-sm font-medium text-slate-700">Available Parent Companies</label>
@@ -1282,7 +1282,7 @@ export function NewCompanyForm({ onBack, onSave, onStepChange, initialStep = "co
                 </div>
               )}
               {subsidiaryCompanies.length > 0 && selectedCompanyType === "main-holding" && (
-                <div className="space-y-2 col-span-full">
+                <div className="space-y-2 col-span-4">
                   {" "}
                   {/* This field spans all columns */}
                   <label className="text-sm font-medium text-slate-700">Companies with this Parent</label>
@@ -1343,7 +1343,7 @@ export function NewCompanyForm({ onBack, onSave, onStepChange, initialStep = "co
                   onChange={(e) => setWebsite(e.target.value)}
                 />
               </div>
-              <div className="space-y-2 col-span-full">
+              <div className="space-y-2 col-span-4">
                 {" "}
                 {/* This field spans all columns */}
                 <label htmlFor="address" className="text-sm font-medium text-slate-700">
