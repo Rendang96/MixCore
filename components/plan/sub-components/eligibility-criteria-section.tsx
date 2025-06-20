@@ -183,13 +183,79 @@ export function EligibilityCriteriaSection() {
         </div>
       </div>
 
-      <div className="flex items-center space-x-2">
-        <Checkbox
-          id="eligibility.coverDisabledChildren"
-          checked={values.eligibility.coverDisabledChildren}
-          onCheckedChange={(checked) => setFieldValue("eligibility.coverDisabledChildren", checked)}
-        />
-        <Label htmlFor="eligibility.coverDisabledChildren">Cover disabled children beyond normal age limit</Label>
+      {/* Cover disabled children beyond normal age limit */}
+      <div className="space-y-2">
+        <div className="flex items-center space-x-2">
+          <Checkbox
+            id="eligibility.coverDisabledChildren"
+            checked={values.eligibility.coverDisabledChildren}
+            onCheckedChange={(checked) => {
+              setFieldValue("eligibility.coverDisabledChildren", checked)
+              // Reset sub-options if checkbox is unchecked
+              if (!checked) {
+                setFieldValue("eligibility.disabledChildrenAgeLimitType", "")
+                setFieldValue("eligibility.disabledChildrenAgeLimitValue", "")
+              }
+            }}
+          />
+          <Label htmlFor="eligibility.coverDisabledChildren">Cover disabled children beyond normal age limit</Label>
+        </div>
+
+        {values.eligibility.coverDisabledChildren && (
+          <div className="ml-6 mt-2 space-y-4">
+            <RadioGroup
+              onValueChange={(value: "No age limit" | "Age limit") => {
+                setFieldValue("eligibility.disabledChildrenAgeLimitType", value)
+                // Clear age value if "No age limit" is selected
+                if (value === "No age limit") {
+                  setFieldValue("eligibility.disabledChildrenAgeLimitValue", "")
+                }
+              }}
+              value={values.eligibility.disabledChildrenAgeLimitType}
+              className="flex flex-col space-y-2"
+            >
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="No age limit" id="disabled-children-no-limit" />
+                <Label htmlFor="disabled-children-no-limit">No age limit</Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="Age limit" id="disabled-children-age-limit" />
+                <Label htmlFor="disabled-children-age-limit">Age limit:</Label>
+                {values.eligibility.disabledChildrenAgeLimitType === "Age limit" && (
+                  <div className="flex items-center gap-2">
+                    <Field
+                      as={Input}
+                      type="number"
+                      id="eligibility.disabledChildrenAgeLimitValue"
+                      name="eligibility.disabledChildrenAgeLimitValue"
+                      placeholder=""
+                      className={cn(
+                        "w-20",
+                        getFieldError("disabledChildrenAgeLimitValue") &&
+                          getFieldTouched("disabledChildrenAgeLimitValue")
+                          ? "border-red-500"
+                          : "",
+                      )}
+                    />
+                    <span>years</span>
+                  </div>
+                )}
+              </div>
+            </RadioGroup>
+            <ErrorMessage
+              name="eligibility.disabledChildrenAgeLimitType"
+              component="p"
+              className="text-red-500 text-xs"
+            />
+            {values.eligibility.disabledChildrenAgeLimitType === "Age limit" && (
+              <ErrorMessage
+                name="eligibility.disabledChildrenAgeLimitValue"
+                component="p"
+                className="text-red-500 text-xs"
+              />
+            )}
+          </div>
+        )}
       </div>
 
       {/* Coverage Rules */}

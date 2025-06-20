@@ -30,7 +30,10 @@ export interface EligibilityCriteria {
   maxAgeIfStudying: number | ""
   maxSpouses: number | ""
   maxChildren: number | ""
-  coverDisabledChildren: boolean
+  // Updated fields for disabled children coverage
+  coverDisabledChildren: boolean // Still needed to enable the section
+  disabledChildrenAgeLimitType: "No age limit" | "Age limit" | "" // New: type of limit
+  disabledChildrenAgeLimitValue: number | "" // New: specific age if "Age limit" is chosen
   spouseCoverageByGender: "Yes" | "No"
   spouseCoverageByEmploymentStatus: "Yes" | "No"
 }
