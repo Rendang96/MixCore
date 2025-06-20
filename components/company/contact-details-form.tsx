@@ -253,7 +253,7 @@ export function ContactDetailsForm({ onNext, onBack, contacts, setContacts }: Co
           {/* Multi-select Title field */}
           <div className="space-y-2">
             <label htmlFor="contact-title" className="text-sm font-medium text-slate-700">
-              Title *
+              Title
             </label>
             <div className="relative">
               <div
