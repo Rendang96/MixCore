@@ -61,27 +61,22 @@ export function BasicInfoStep({ onProviderSelectionToggle, onSpecialRulesToggle 
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="space-y-2">
-              <Label htmlFor="effectiveDate">Effective Date</Label>
-              <DatePicker
-                date={values.effectiveDate}
-                setDate={(date) => setFieldValue("effectiveDate", date)}
-                className={errors.effectiveDate && touched.effectiveDate ? "border-red-500" : ""}
-              />
-              <ErrorMessage name="effectiveDate" component="p" className="text-red-500 text-xs" />
-              <p className="text-sm text-gray-500">Plan start date cannot be in the past</p>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="expiryDate">Expiry Date</Label>
-              <DatePicker
-                date={values.expiryDate}
-                setDate={(date) => setFieldValue("expiryDate", date)}
-                className={errors.expiryDate && touched.expiryDate ? "border-red-500" : ""}
-                disabled={(date) => !values.effectiveDate || date < values.effectiveDate}
-              />
-              <ErrorMessage name="expiryDate" component="p" className="text-red-500 text-xs" />
-              <p className="text-sm text-gray-500">Please select an effective date first</p>
-            </div>
+            <DatePicker
+              label="Effective Date"
+              date={values.effectiveDate}
+              setDate={(date) => setFieldValue("effectiveDate", date)}
+              minDate={new Date()} // Set minDate to today
+              className={errors.effectiveDate && touched.effectiveDate ? "border-red-500" : ""}
+              helperText="Plan start date cannot be in the past"
+            />
+            <DatePicker
+              label="Expiry Date"
+              date={values.expiryDate}
+              setDate={(date) => setFieldValue("expiryDate", date)}
+              disabled={(date) => !values.effectiveDate || date < values.effectiveDate}
+              className={errors.expiryDate && touched.expiryDate ? "border-red-500" : ""}
+              helperText="Please select an effective date first"
+            />
           </div>
 
           {/* Provider Selection Section */}
