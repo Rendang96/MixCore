@@ -59,8 +59,69 @@ export function Sidebar({ open, activeMenu = "dashboard", activeSubMenu = null, 
     { name: "POLICY", icon: FileText, hasSubmenu: true, isActive: activeMenu === "policy" },
     { name: "BENEFIT EXCLUSION CATALOGUE", icon: BookOpen, hasSubmenu: true, isActive: activeMenu === "benefit" },
     { name: "PLAN", icon: Calendar, hasSubmenu: true, isActive: activeMenu === "plan" },
-    { name: "PROVIDER", icon: UserCog, hasSubmenu: true, isActive: activeMenu === "provider" },
-    { name: "AGENT BROKER", icon: UserPlus, hasSubmenu: true, isActive: activeMenu === "agent" },
+    {
+      name: "PROVIDER",
+      icon: UserCog,
+      hasSubmenu: true,
+      isActive: activeMenu === "provider",
+      isExpanded: expandedMenu === "PROVIDER",
+      subMenuItems: [
+        {
+          name: "MAINTENANCE",
+          path: "setup",
+          isActive: activeMenu === "provider" && activeSubMenu === "setup",
+        },
+        {
+          name: "ONBOARD",
+          path: "onboard",
+          isActive: activeMenu === "provider" && activeSubMenu === "onboard",
+        },
+        {
+          name: "DATA MAPPING",
+          path: "data-mapping",
+          isActive: activeMenu === "provider" && activeSubMenu === "data-mapping",
+        },
+        {
+          name: "DOCTOR",
+          path: "doctor",
+          isActive: activeMenu === "provider" && activeSubMenu === "doctor",
+        },
+        {
+          name: "RECON",
+          path: "recon",
+          isActive: activeMenu === "provider" && activeSubMenu === "recon",
+        },
+        {
+          name: "CHANGE REQUEST",
+          path: "change-request",
+          isActive: activeMenu === "provider" && activeSubMenu === "change-request",
+        },
+      ],
+    },
+    {
+      name: "AGENT BROKER",
+      icon: UserPlus,
+      hasSubmenu: true,
+      isActive: activeMenu === "agent-broker",
+      isExpanded: expandedMenu === "AGENT BROKER",
+      subMenuItems: [
+        {
+          name: "AGENT",
+          path: "agent",
+          isActive: activeMenu === "agent-broker" && activeSubMenu === "agent",
+        },
+        {
+          name: "BROKER",
+          path: "broker",
+          isActive: activeMenu === "agent-broker" && activeSubMenu === "broker",
+        },
+        {
+          name: "SALES MANAGER",
+          path: "sales-manager",
+          isActive: activeMenu === "agent-broker" && activeSubMenu === "sales-manager",
+        },
+      ],
+    },
     {
       name: "ONBOARDING",
       icon: ClipboardList,
@@ -113,14 +174,35 @@ export function Sidebar({ open, activeMenu = "dashboard", activeSubMenu = null, 
   ]
 
   const handleMenuClick = (menuName: string) => {
-    // Toggle submenu expansion if it has submenus
     const clickedMenu = menuItems.find((item) => item.name === menuName)
-    if (clickedMenu && clickedMenu.subMenuItems && clickedMenu.subMenuItems.length > 0) {
-      setExpandedMenu(expandedMenu === menuName ? null : menuName)
-      return // Don't navigate if it's just expanding submenu
+
+    if (clickedMenu && clickedMenu.hasSubmenu) {
+      if (menuName === "PROVIDER") {
+        if (expandedMenu !== menuName) {
+          setExpandedMenu(menuName)
+          router.push("/providers") // Corrected path for PROVIDER
+        } else {
+          setExpandedMenu(null)
+        }
+        return
+      } else if (menuName === "AGENT BROKER") {
+        if (expandedMenu !== menuName) {
+          setExpandedMenu(menuName)
+          router.push("/agent-broker") // Corrected path for AGENT BROKER
+        } else {
+          setExpandedMenu(null)
+        }
+        return
+      }
+
+      // General handling for other menus with submenus (just toggle expansion)
+      if (clickedMenu.subMenuItems && clickedMenu.subMenuItems.length > 0) {
+        setExpandedMenu(expandedMenu === menuName ? null : menuName)
+        return
+      }
     }
 
-    // Navigate to the respective module
+    // Default navigation for menus without submenus or if specific logic above didn't return
     switch (menuName) {
       case "HOME":
         router.push("/")
@@ -148,12 +230,6 @@ export function Sidebar({ open, activeMenu = "dashboard", activeSubMenu = null, 
         break
       case "PLAN":
         router.push("/plan")
-        break
-      case "PROVIDER":
-        router.push("/provider")
-        break
-      case "AGENT BROKER":
-        router.push("/agent")
         break
       case "ONBOARDING":
         router.push("/onboarding")
@@ -193,10 +269,12 @@ export function Sidebar({ open, activeMenu = "dashboard", activeSubMenu = null, 
     // Navigate to submenu routes
     if (menuName === "ONBOARDING") {
       router.push(`/onboarding/${subMenuPath}`)
-    }
-
-    if (menuName === "MAINTENANCE") {
+    } else if (menuName === "MAINTENANCE") {
       router.push(`/maintenance/${subMenuPath}`)
+    } else if (menuName === "PROVIDER") {
+      router.push(`/providers/${subMenuPath}`)
+    } else if (menuName === "AGENT BROKER") {
+      router.push(`/agent-broker/${subMenuPath}`)
     }
 
     // Call the parent's onMenuClick handler if provided
