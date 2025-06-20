@@ -5,7 +5,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Checkbox } from "@/components/ui/checkbox"
 import { Button } from "@/components/ui/button"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import { Input } from "@/components/ui/input" // Import Input for name
+import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import {
   Dialog,
@@ -16,18 +16,15 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea" // Import Textarea for address
+import { Textarea } from "@/components/ui/textarea"
 
-import {
-  type UnmatchedProvider,
-  mockMatchedProviders, // Import mock matched providers for suggestions
-} from "@/lib/mock-data-matching"
+import { type UnmatchedProvider, mockMatchedProviders } from "@/lib/mock-data-matching"
 import { toast } from "@/hooks/use-toast"
-import { cn } from "@/lib/utils" // For conditional class names
+import { cn } from "@/lib/utils"
 
 interface UnmatchedProvidersTableProps {
   data: UnmatchedProvider[]
-  onDataUpdate: (updatedData: UnmatchedProvider[]) => void // Callback to update parent state
+  onDataUpdate: (updatedData: UnmatchedProvider[]) => void
 }
 
 interface SuggestedMatch {
@@ -37,49 +34,44 @@ interface SuggestedMatch {
   confidence: number
 }
 
-// Simple similarity score simulation (Levenshtein distance not directly available in Next.js)
 function getSimilarityScore(str1: string, str2: string): number {
   const s1 = str1.toLowerCase().trim()
   const s2 = str2.toLowerCase().trim()
 
-  if (s1 === s2) return 100 // Exact match
+  if (s1 === s2) return 100
 
   let score = 0
-  // Check for substring presence
   if (s1.includes(s2) || s2.includes(s1)) {
-    score += 40 // Base score for partial match
+    score += 40
   }
 
-  // Calculate Jaccard similarity for words
   const words1 = new Set(s1.split(/\s+/))
   const words2 = new Set(s2.split(/\s+/))
   const intersection = new Set([...words1].filter((x) => words2.has(x))).size
   const union = words1.size + words2.size - intersection
   if (union > 0) {
-    score += (intersection / union) * 40 // Add up to 40 for word overlap
+    score += (intersection / union) * 40
   }
 
-  // Add points for length similarity
   const lengthDiff = Math.abs(s1.length - s2.length)
-  score += Math.max(0, 20 - lengthDiff) // Up to 20 points for similar length
+  score += Math.max(0, 20 - lengthDiff)
 
-  // Introduce some randomness to simulate fuzzy logic
-  score += Math.random() * 5 - 2.5 // +/- 2.5 points
+  score += Math.random() * 5 - 2.5
 
   return Math.min(100, Math.max(0, Math.round(score)))
 }
 
 export function UnmatchedProvidersTable({ data, onDataUpdate }: UnmatchedProvidersTableProps) {
-  const [selectedRows, setSelectedRows] = useState<Set<string>>(new Set()) // Corrected: added 'new'
-  const [editingProvider, setEditingProvider] = useState<UnmatchedProvider | null>(null) // State for modal editing
+  const [selectedRows, setSelectedRows] = useState<Set<string>>(new Set())
+  const [editingProvider, setEditingProvider] = useState<UnmatchedProvider | null>(null)
   const [modalEditedName, setModalEditedName] = useState("")
   const [modalEditedAddress, setModalEditedAddress] = useState("")
   const [modalEditedContact, setModalEditedContact] = useState("")
   const [suggestions, setSuggestions] = useState<{ [key: string]: SuggestedMatch[] }>({})
   const [ignoredProviders, setIgnoredProviders] = useState<UnmatchedProvider[]>([])
   const [fadingOutId, setFadingOutId] = useState<string | null>(null)
+  const [isDropdownOpen, setIsDropdownOpen] = useState<boolean>(false) // New state for dropdown
 
-  // Load ignored providers from localStorage on mount
   useEffect(() => {
     const storedIgnored = localStorage.getItem("ignoredProviders")
     if (storedIgnored) {
@@ -87,7 +79,6 @@ export function UnmatchedProvidersTable({ data, onDataUpdate }: UnmatchedProvide
     }
   }, [])
 
-  // Save ignored providers to localStorage whenever it changes
   useEffect(() => {
     localStorage.setItem("ignoredProviders", JSON.stringify(ignoredProviders))
   }, [ignoredProviders])
@@ -121,7 +112,7 @@ export function UnmatchedProvidersTable({ data, onDataUpdate }: UnmatchedProvide
     mockMatchedProviders.forEach((matchedP) => {
       const nameScore = getSimilarityScore(provider.providerName, matchedP.providerName)
       const addressScore = getSimilarityScore(provider.address, matchedP.address)
-      const overallConfidence = nameScore * 0.6 + addressScore * 0.4 // Weighted average
+      const overallConfidence = nameScore * 0.6 + addressScore * 0.4
 
       if (overallConfidence >= 75) {
         currentSuggestions.push({
@@ -133,7 +124,6 @@ export function UnmatchedProvidersTable({ data, onDataUpdate }: UnmatchedProvide
       }
     })
 
-    // Sort by confidence and take top 3
     const topSuggestions = currentSuggestions.sort((a, b) => b.confidence - a.confidence).slice(0, 3)
 
     setSuggestions((prev) => ({ ...prev, [provider.id]: topSuggestions }))
@@ -150,7 +140,7 @@ export function UnmatchedProvidersTable({ data, onDataUpdate }: UnmatchedProvide
           description: `Could not find strong matches for "${provider.providerName}".`,
         })
       }
-    }, 500) // Simulate slight delay for suggestions
+    }, 500)
   }, [])
 
   const handleEdit = useCallback((provider: UnmatchedProvider) => {
@@ -158,11 +148,11 @@ export function UnmatchedProvidersTable({ data, onDataUpdate }: UnmatchedProvide
     setModalEditedName(provider.providerName)
     setModalEditedAddress(provider.address)
     setModalEditedContact(provider.contact)
+    setIsDropdownOpen(false) // Close dropdown after action
   }, [])
 
   const handleSaveEdit = useCallback(() => {
     if (editingProvider) {
-      // Basic validation for address format (can be expanded)
       if (!modalEditedAddress.trim()) {
         toast({
           title: "Validation Error",
@@ -182,8 +172,8 @@ export function UnmatchedProvidersTable({ data, onDataUpdate }: UnmatchedProvide
             }
           : p,
       )
-      onDataUpdate(updatedData) // Update parent state
-      setEditingProvider(null) // Close modal
+      onDataUpdate(updatedData)
+      setEditingProvider(null)
       toast({
         title: "Provider Updated",
         description: `"${modalEditedName}" details saved.`,
@@ -192,26 +182,26 @@ export function UnmatchedProvidersTable({ data, onDataUpdate }: UnmatchedProvide
   }, [editingProvider, modalEditedName, modalEditedAddress, modalEditedContact, data, onDataUpdate])
 
   const handleCancelEdit = useCallback(() => {
-    setEditingProvider(null) // Close modal without saving
+    setEditingProvider(null)
   }, [])
 
   const handleIgnore = useCallback(
     (providerToIgnore: UnmatchedProvider) => {
-      setFadingOutId(providerToIgnore.id) // Start fade out animation
+      setFadingOutId(providerToIgnore.id)
+      setIsDropdownOpen(false) // Close dropdown after action
 
       setTimeout(() => {
         const updatedData = data.filter((p) => p.id !== providerToIgnore.id)
-        onDataUpdate(updatedData) // Remove from parent's unmatched list
-        setIgnoredProviders((prev) => [...prev, providerToIgnore]) // Add to ignored list
-        setFadingOutId(null) // Reset fading out state
+        onDataUpdate(updatedData)
+        setIgnoredProviders((prev) => [...prev, providerToIgnore])
+        setFadingOutId(null)
 
         toast({
           title: "Provider Ignored",
           description: `"${providerToIgnore.providerName}" has been moved to ignored.`,
           duration: 3000,
-          // position: "bottom-right", // This would be configured in the ToastProvider
         })
-      }, 300) // Match CSS transition duration
+      }, 300)
     },
     [data, onDataUpdate],
   )
@@ -221,7 +211,6 @@ export function UnmatchedProvidersTable({ data, onDataUpdate }: UnmatchedProvide
       <Table className="min-w-full divide-y divide-gray-200">
         <TableHeader>
           <TableRow>
-            {/* */}
             <TableHead className="w-12">
               <Checkbox
                 checked={selectedRows.size === data.length && data.length > 0}
@@ -229,29 +218,20 @@ export function UnmatchedProvidersTable({ data, onDataUpdate }: UnmatchedProvide
                 aria-label="Select all unmatched providers"
               />
             </TableHead>
-            {/* */}
             <TableHead>Provider Name</TableHead>
-            {/* */}
             <TableHead>Address</TableHead>
-            {/* */}
             <TableHead>Contact</TableHead>
-            {/* */}
             <TableHead>Source File</TableHead>
-            {/* */}
             <TableHead>Issue</TableHead>
-            {/* */}
             <TableHead className="w-[120px]">Quick Actions</TableHead>
-            {/* */}
           </TableRow>
         </TableHeader>
         <TableBody>
           {data.length === 0 ? (
             <TableRow>
-              {/* */}
               <TableCell colSpan={7} className="text-center py-4 text-gray-500">
                 No unmatched providers to display.
               </TableCell>
-              {/* */}
             </TableRow>
           ) : (
             data.map((row) => (
@@ -259,7 +239,6 @@ export function UnmatchedProvidersTable({ data, onDataUpdate }: UnmatchedProvide
                 key={row.id}
                 className={cn("transition-opacity duration-300 ease-out", fadingOutId === row.id && "opacity-0")}
               >
-                {/* */}
                 <TableCell>
                   <Checkbox
                     checked={selectedRows.has(row.id)}
@@ -267,30 +246,26 @@ export function UnmatchedProvidersTable({ data, onDataUpdate }: UnmatchedProvide
                     aria-label={`Select row for ${row.providerName}`}
                   />
                 </TableCell>
-                {/* */}
                 <TableCell className="font-medium">{row.providerName}</TableCell>
-                {/* */}
                 <TableCell>{row.address}</TableCell>
-                {/* */}
                 <TableCell
                   className="blur-sm hover:blur-none transition-all duration-200"
                   title="Hover to reveal contact"
                 >
                   {row.contact}
                 </TableCell>
-                {/* */}
                 <TableCell>{row.sourceFile}</TableCell>
-                {/* */}
                 <TableCell>{row.issue}</TableCell>
-                {/* */}
                 <TableCell>
-                  <DropdownMenu onOpenChange={(open) => console.log("Dropdown open state:", open)}>
+                  <DropdownMenu open={isDropdownOpen} onOpenChange={setIsDropdownOpen}>
+                    {" "}
+                    {/* Controlled open state */}
                     <DropdownMenuTrigger asChild>
                       <Button
                         variant="outline"
                         size="sm"
                         className="z-[10000]"
-                        onClick={() => console.log("Button clicked!")}
+                        // Removed direct onClick here, as DropdownMenuTrigger handles it
                       >
                         Actions
                       </Button>
@@ -330,14 +305,12 @@ export function UnmatchedProvidersTable({ data, onDataUpdate }: UnmatchedProvide
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </TableCell>
-                {/* */}
               </TableRow>
             ))
           )}
         </TableBody>
       </Table>
 
-      {/* Display Ignored Providers (optional, could be a separate component/tab) */}
       {ignoredProviders.length > 0 && (
         <div className="mt-8">
           <h3 className="text-xl font-semibold mb-4">Ignored Providers</h3>
@@ -352,7 +325,6 @@ export function UnmatchedProvidersTable({ data, onDataUpdate }: UnmatchedProvide
         </div>
       )}
 
-      {/* Edit Provider Modal */}
       <Dialog open={!!editingProvider} onOpenChange={setEditingProvider}>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
