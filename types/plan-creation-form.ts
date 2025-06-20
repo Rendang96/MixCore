@@ -48,6 +48,15 @@ export interface MaternityCoverage {
   waitingPeriod: string // e.g., "None", "30 days"
 }
 
+export interface Provider {
+  id: string
+  name: string
+  address: string
+  phone: string
+  hours: string
+  type: "Hospital" | "GP Clinic" | "Pharmacy" | "Physiotherapy Center"
+}
+
 export interface PlanCreationFormValues {
   // Basic Plan Information
   planName: string
@@ -74,6 +83,9 @@ export interface PlanCreationFormValues {
 
   // Maternity Coverage (if enabled)
   maternity: MaternityCoverage
+
+  // New: Selected Providers for Step 2
+  selectedProviders: Provider[]
 
   // Other steps (placeholders for now)
   benefitLimits: any[]
