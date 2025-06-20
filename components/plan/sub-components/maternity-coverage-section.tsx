@@ -139,9 +139,10 @@ export function MaternityCoverageSection() {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="None">None</SelectItem>
-            <SelectItem value="30 days">30 days</SelectItem>
-            <SelectItem value="60 days">60 days</SelectItem>
-            <SelectItem value="90 days">90 days</SelectItem>
+            <SelectItem value="3 Months">3 Months</SelectItem>
+            <SelectItem value="6 Months">6 Months</SelectItem>
+            <SelectItem value="9 Months">9 Months</SelectItem>
+            <SelectItem value="1 Year">1 Year</SelectItem>
           </SelectContent>
         </Select>
         {getFieldError("waitingPeriod") && getFieldTouched("waitingPeriod") && (
