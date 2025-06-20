@@ -128,6 +128,7 @@ export function OperationalSegmentationForm({
       address: "",
       postcode: "",
       city: "",
+      type: "",
       state: "",
       country: "",
       remarks: "",
@@ -366,71 +367,73 @@ export function OperationalSegmentationForm({
             />
           </div>
 
-          <div className="space-y-2">
-            <label htmlFor="postcode" className="text-sm font-medium text-slate-700">
-              Postcode
-            </label>
-            <Input
-              id="postcode"
-              value={currentStructure.postcode}
-              onChange={(e) => handleInputChange("postcode", e.target.value)}
-              className="w-full"
-            />
-          </div>
+          <div className="grid gap-6 grid-cols-1 md:grid-cols-4">
+            <div className="space-y-2">
+              <label htmlFor="postcode" className="text-sm font-medium text-slate-700">
+                Postcode
+              </label>
+              <Input
+                id="postcode"
+                value={currentStructure.postcode}
+                onChange={(e) => handleInputChange("postcode", e.target.value)}
+                className="w-full"
+              />
+            </div>
 
-          <div className="space-y-2">
-            <label htmlFor="city" className="text-sm font-medium text-slate-700">
-              City
-            </label>
-            <Select onValueChange={(value) => handleInputChange("city", value)} value={currentStructure.city}>
-              <SelectTrigger id="city" className="w-full">
-                <SelectValue placeholder="Select" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="kuala-lumpur">Kuala Lumpur</SelectItem>
-                <SelectItem value="penang">Penang</SelectItem>
-                <SelectItem value="johor-bahru">Johor Bahru</SelectItem>
-                <SelectItem value="ipoh">Ipoh</SelectItem>
-                <SelectItem value="kuching">Kuching</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+            <div className="space-y-2">
+              <label htmlFor="city" className="text-sm font-medium text-slate-700">
+                City
+              </label>
+              <Select onValueChange={(value) => handleInputChange("city", value)} value={currentStructure.city}>
+                <SelectTrigger id="city" className="w-full">
+                  <SelectValue placeholder="Select" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="kuala-lumpur">Kuala Lumpur</SelectItem>
+                  <SelectItem value="penang">Penang</SelectItem>
+                  <SelectItem value="johor-bahru">Johor Bahru</SelectItem>
+                  <SelectItem value="ipoh">Ipoh</SelectItem>
+                  <SelectItem value="kuching">Kuching</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
 
-          <div className="space-y-2">
-            <label htmlFor="state" className="text-sm font-medium text-slate-700">
-              State
-            </label>
-            <Select onValueChange={(value) => handleInputChange("state", value)} value={currentStructure.state}>
-              <SelectTrigger id="state" className="w-full">
-                <SelectValue placeholder="Select" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="selangor">Selangor</SelectItem>
-                <SelectItem value="kuala-lumpur">Kuala Lumpur</SelectItem>
-                <SelectItem value="penang">Penang</SelectItem>
-                <SelectItem value="johor">Johor</SelectItem>
-                <SelectItem value="perak">Perak</SelectItem>
-                <SelectItem value="sarawak">Sarawak</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+            <div className="space-y-2">
+              <label htmlFor="state" className="text-sm font-medium text-slate-700">
+                State
+              </label>
+              <Select onValueChange={(value) => handleInputChange("state", value)} value={currentStructure.state}>
+                <SelectTrigger id="state" className="w-full">
+                  <SelectValue placeholder="Select" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="selangor">Selangor</SelectItem>
+                  <SelectItem value="kuala-lumpur">Kuala Lumpur</SelectItem>
+                  <SelectItem value="penang">Penang</SelectItem>
+                  <SelectItem value="johor">Johor</SelectItem>
+                  <SelectItem value="perak">Perak</SelectItem>
+                  <SelectItem value="sarawak">Sarawak</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
 
-          <div className="space-y-2">
-            <label htmlFor="country" className="text-sm font-medium text-slate-700">
-              Country
-            </label>
-            <Select onValueChange={(value) => handleInputChange("country", value)} value={currentStructure.country}>
-              <SelectTrigger id="country" className="w-full">
-                <SelectValue placeholder="Select" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="malaysia">Malaysia</SelectItem>
-                <SelectItem value="singapore">Singapore</SelectItem>
-                <SelectItem value="indonesia">Indonesia</SelectItem>
-                <SelectItem value="thailand">Thailand</SelectItem>
-                <SelectItem value="philippines">Philippines</SelectItem>
-              </SelectContent>
-            </Select>
+            <div className="space-y-2">
+              <label htmlFor="country" className="text-sm font-medium text-slate-700">
+                Country
+              </label>
+              <Select onValueChange={(value) => handleInputChange("country", value)} value={currentStructure.country}>
+                <SelectTrigger id="country" className="w-full">
+                  <SelectValue placeholder="Select" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="malaysia">Malaysia</SelectItem>
+                  <SelectItem value="singapore">Singapore</SelectItem>
+                  <SelectItem value="indonesia">Indonesia</SelectItem>
+                  <SelectItem value="thailand">Thailand</SelectItem>
+                  <SelectItem value="philippines">Philippines</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
 
           <div className="space-y-2 col-span-3">
