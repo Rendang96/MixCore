@@ -70,7 +70,7 @@ function getSimilarityScore(str1: string, str2: string): number {
 }
 
 export function UnmatchedProvidersTable({ data, onDataUpdate }: UnmatchedProvidersTableProps) {
-  const [selectedRows, setSelectedRows] = useState<Set<string>>(new Set())
+  const [selectedRows, setSelectedRows] = useState<Set<string>>(Set())
   const [editingProvider, setEditingProvider] = useState<UnmatchedProvider | null>(null) // State for modal editing
   const [modalEditedName, setModalEditedName] = useState("")
   const [modalEditedAddress, setModalEditedAddress] = useState("")
@@ -286,9 +286,12 @@ export function UnmatchedProvidersTable({ data, onDataUpdate }: UnmatchedProvide
                 <TableCell>
                   <DropdownMenu onOpenChange={(open) => console.log("Dropdown open state:", open)}>
                     <DropdownMenuTrigger asChild>
-                      <Button variant="outline" size="sm" className="z-[10000]">
-                        {" "}
-                        {/* Added z-[10000] here */}
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="z-[10000]"
+                        onClick={() => console.log("Button clicked!")} // Added this line
+                      >
                         Actions
                       </Button>
                     </DropdownMenuTrigger>
