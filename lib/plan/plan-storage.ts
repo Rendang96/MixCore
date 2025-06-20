@@ -4,11 +4,12 @@ export interface Plan {
   id: string
   name: string
   type: string
-  status: string
-  createdDate: string
+  status: string // "Active", "Inactive", "Draft"
+  createdDate: string // YYYY-MM-DD
+  lastUpdated: string // YYYY-MM-DD
+  effectiveDate: string
+  expiryDate: string
   description?: string
-  effectiveDate?: string
-  expiryDate?: string
   serviceTypes?: string[]
   subServiceTypes?: { [serviceType: string]: string[] }
   providerAccess?: string
@@ -31,6 +32,18 @@ export interface Plan {
     }
   }
   coPayments?: any[]
+  // New fields for progress tracking
+  progress: {
+    currentStep: number
+    totalSteps: number
+  }
+  configStatus: {
+    basicInfo: boolean
+    providerSelection: boolean
+    benefitLimits: boolean
+    specialRules: boolean
+    review: boolean
+  }
 }
 
 const STORAGE_KEY = "plans"
@@ -59,7 +72,22 @@ export class PlanStorage {
   // Add a new plan
   static addPlan(plan: Plan): void {
     const plans = this.getAllPlans()
-    plans.unshift(plan) // Add to the beginning of the array
+    const now = new Date().toISOString().split("T")[0]
+    const newPlan: Plan = {
+      ...plan,
+      createdDate: now,
+      lastUpdated: now,
+      progress: plan.progress || { currentStep: 1, totalSteps: 5 }, // Default progress
+      configStatus: plan.configStatus || {
+        // Default config status
+        basicInfo: false,
+        providerSelection: false,
+        benefitLimits: false,
+        specialRules: false,
+        review: false,
+      },
+    }
+    plans.unshift(newPlan) // Add to the beginning of the array
     this.savePlans(plans)
   }
 
@@ -68,7 +96,7 @@ export class PlanStorage {
     const plans = this.getAllPlans()
     const index = plans.findIndex((plan) => plan.id === id)
     if (index !== -1) {
-      plans[index] = { ...plans[index], ...updates }
+      plans[index] = { ...plans[index], ...updates, lastUpdated: new Date().toISOString().split("T")[0] }
       this.savePlans(plans)
     }
   }
