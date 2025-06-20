@@ -1,23 +1,18 @@
-"use client"
-
 import type React from "react"
 import { Header } from "@/components/header"
 import { Sidebar } from "@/components/sidebar"
 import { Footer } from "@/components/footer"
-import { useState } from "react"
 
-export default function ProvidersLayout({
+export default function ProviderLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
-  const [sidebarOpen, setSidebarOpen] = useState(false)
-
   return (
     <div className="min-h-screen bg-gray-50">
-      <Header sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
+      <Header />
       <div className="flex">
-        <Sidebar activeMenu="PROVIDER" open={sidebarOpen} />
+        <Sidebar activeMenu="provider" />
         <main className="flex-1 p-6">{children}</main>
       </div>
       <Footer />
