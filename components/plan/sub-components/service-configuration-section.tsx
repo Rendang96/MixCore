@@ -60,13 +60,16 @@ export function ServiceConfigurationSection() {
   const [accordionOpenItems, setAccordionOpenItems] = useState<string[]>([])
 
   useEffect(() => {
-    // Initialize serviceConfigurations based on ALL_SERVICE_TYPES if empty
-    if (values.serviceConfigurations.length === 0) {
+    // Initialize serviceConfigurations based on ALL_SERVICE_TYPES if empty or not fully initialized
+    if (
+      values.serviceConfigurations.length === 0 ||
+      values.serviceConfigurations.some((config) => config.selected === undefined)
+    ) {
       const initialConfigs: ServiceTypeConfig[] = ALL_SERVICE_TYPES.map((service) => ({
         ...service,
         autoSuspension: 80, // Default value
         subServices: (SUB_SERVICES_DATA[service.code] || []).map((sub) => ({ name: sub, selected: false })),
-        expanded: false,
+        selected: false, // Initialize new 'selected' property
       }))
       setFieldValue("serviceConfigurations", initialConfigs)
     }
@@ -75,25 +78,40 @@ export function ServiceConfigurationSection() {
   const handleServiceTypeChange = (code: string, isChecked: boolean) => {
     const updatedConfigs = values.serviceConfigurations.map((config) => {
       if (config.code === code) {
-        return {
+        const newConfig = {
           ...config,
+          selected: isChecked, // Update the main service type's selected state
           // When main service type is unchecked, unselect all sub-services
           subServices: isChecked ? config.subServices : config.subServices.map((sub) => ({ ...sub, selected: false })),
         }
+        return newConfig
       }
       return config
     })
     setFieldValue("serviceConfigurations", updatedConfigs)
+
+    // Update accordion open items based on the main service type's selected state
+    setAccordionOpenItems((prev) => {
+      if (isChecked) {
+        return [...prev, code]
+      } else {
+        return prev.filter((item) => item !== code)
+      }
+    })
   }
 
   const handleSubServiceChange = (serviceCode: string, subServiceName: string, isChecked: boolean) => {
     const updatedConfigs = values.serviceConfigurations.map((config) => {
       if (config.code === serviceCode) {
+        const updatedSubServices = config.subServices.map((sub) =>
+          sub.name === subServiceName ? { ...sub, selected: isChecked } : sub,
+        )
+        // If any sub-service is selected, ensure the main service type is also selected
+        const isAnySubServiceSelected = updatedSubServices.some((sub) => sub.selected)
         return {
           ...config,
-          subServices: config.subServices.map((sub) =>
-            sub.name === subServiceName ? { ...sub, selected: isChecked } : sub,
-          ),
+          subServices: updatedSubServices,
+          selected: isAnySubServiceSelected || config.selected, // Keep selected if already true, or set if sub-service is selected
         }
       }
       return config
@@ -107,6 +125,7 @@ export function ServiceConfigurationSection() {
         return {
           ...config,
           subServices: config.subServices.map((sub) => ({ ...sub, selected: true })),
+          selected: true, // Ensure main service type is selected
         }
       }
       return config
@@ -120,6 +139,7 @@ export function ServiceConfigurationSection() {
         return {
           ...config,
           subServices: config.subServices.map((sub) => ({ ...sub, selected: false })),
+          // Do not unselect main service type here, it's handled by the main checkbox
         }
       }
       return config
@@ -137,24 +157,16 @@ export function ServiceConfigurationSection() {
     setFieldValue("serviceConfigurations", updatedConfigs)
   }
 
-  const selectedServiceTypes = values.serviceConfigurations.filter((config) =>
-    config.subServices.some((sub) => sub.selected),
-  )
+  const selectedServiceTypes = values.serviceConfigurations.filter((config) => config.selected)
   const totalSubServices = selectedServiceTypes.reduce(
     (sum, config) => sum + config.subServices.filter((sub) => sub.selected).length,
     0,
   )
 
-  const toggleAccordionItem = (itemValue: string) => {
-    setAccordionOpenItems((prev) =>
-      prev.includes(itemValue) ? prev.filter((item) => item !== itemValue) : [...prev, itemValue],
-    )
-  }
-
   const expandAll = () => {
     setAccordionOpenItems(
       values.serviceConfigurations
-        .filter((config) => config.subServices.some((sub) => sub.selected)) // Only expand selected ones
+        .filter((config) => config.selected && config.subServices.length > 0) // Only expand selected ones with sub-services
         .map((config) => config.code),
     )
   }
@@ -185,7 +197,7 @@ export function ServiceConfigurationSection() {
               <div key={serviceConfig.code} className="flex items-center space-x-2">
                 <Checkbox
                   id={`service-type-${serviceConfig.code}`}
-                  checked={serviceConfig.subServices.some((sub) => sub.selected)}
+                  checked={serviceConfig.selected} // Use the new 'selected' property
                   onCheckedChange={(checked) => handleServiceTypeChange(serviceConfig.code, !!checked)}
                 />
                 <Label htmlFor={`service-type-${serviceConfig.code}`}>{serviceConfig.name}</Label>
@@ -212,11 +224,10 @@ export function ServiceConfigurationSection() {
             className="w-full"
           >
             {values.serviceConfigurations
-              .filter((config) => config.subServices.some((sub) => sub.selected)) // Only show if has selected sub-services
+              .filter((config) => config.selected && config.subServices.length > 0) // Only show if main service type is selected AND has sub-services
               .map((serviceConfig) => {
                 const selectedSubServicesCount = serviceConfig.subServices.filter((sub) => sub.selected).length
                 const totalSubServicesForType = serviceConfig.subServices.length
-                const isServiceTypeSelected = selectedSubServicesCount > 0
 
                 return (
                   <AccordionItem
@@ -224,7 +235,7 @@ export function ServiceConfigurationSection() {
                     value={serviceConfig.code}
                     className={cn(
                       "border rounded-md mb-2",
-                      isServiceTypeSelected ? "border-blue-200 bg-blue-50" : "border-gray-200",
+                      serviceConfig.selected ? "border-blue-200 bg-blue-50" : "border-gray-200", // Apply blue if main service type is selected
                     )}
                   >
                     <AccordionTrigger className="px-4 py-3 hover:no-underline">
@@ -233,7 +244,7 @@ export function ServiceConfigurationSection() {
                           <div
                             className={cn(
                               "h-3 w-3 rounded-full",
-                              isServiceTypeSelected ? "bg-blue-600" : "bg-gray-400",
+                              serviceConfig.selected ? "bg-blue-600" : "bg-gray-400", // Apply blue if main service type is selected
                             )}
                           />
                           <span className="font-medium">{serviceConfig.name}</span>

@@ -13,23 +13,30 @@ interface DatePickerProps {
   date: Date | undefined
   setDate: (date: Date | undefined) => void
   minDate?: Date
+  maxDate?: Date
   disabled?: (date: Date) => boolean
+  className?: string
   helperText?: string
-  className?: string // Add className prop for external styling
 }
 
-export function DatePicker({ label, date, setDate, minDate, disabled, helperText, className }: DatePickerProps) {
-  const id = label.toLowerCase().replace(/\s+/g, "-")
-
+export function DatePicker({
+  label,
+  date,
+  setDate,
+  minDate,
+  maxDate,
+  disabled,
+  className,
+  helperText,
+}: DatePickerProps) {
   return (
-    <div className={cn("grid gap-2", className)}>
-      <Label htmlFor={id}>{label}</Label>
+    <div className={cn("flex flex-col space-y-2", className)}>
+      <Label>{label}</Label>
       <Popover>
         <PopoverTrigger asChild>
           <Button
             variant={"outline"}
             className={cn("w-full justify-start text-left font-normal", !date && "text-muted-foreground")}
-            id={id}
           >
             <CalendarIcon className="mr-2 h-4 w-4" />
             {date ? format(date, "dd/MM/yyyy") : <span>dd/mm/yyyy</span>}
@@ -41,11 +48,13 @@ export function DatePicker({ label, date, setDate, minDate, disabled, helperText
             selected={date}
             onSelect={setDate}
             initialFocus
-            disabled={disabled || (minDate ? (d) => d < minDate : undefined)}
+            fromDate={minDate}
+            toDate={maxDate}
+            disabled={disabled}
           />
         </PopoverContent>
       </Popover>
-      {helperText && <p className="text-xs text-gray-500">{helperText}</p>}
+      {helperText && <p className="text-sm text-gray-500">{helperText}</p>}
     </div>
   )
 }

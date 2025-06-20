@@ -4,7 +4,7 @@ export interface ProviderSelectionRecord {
   providerCategories: string[] // e.g., "Government", "Private"
   paymentMethods: string[] // e.g., "Cashless", "Pay and Claim"
   panelship: string // e.g., "Select Access"
-  state: string // e.g., "Select states"
+  state: string[] // Changed to string[] for multi-select
   accessRule: string // e.g., "Select"
 }
 
@@ -18,7 +18,7 @@ export interface ServiceTypeConfig {
   code: string // e.g., "GP"
   autoSuspension: number // percentage
   subServices: SubService[]
-  expanded: boolean // For UI state
+  selected: boolean // New property to track if the main service type checkbox is selected
 }
 
 export interface EligibilityCriteria {
