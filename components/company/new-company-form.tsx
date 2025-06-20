@@ -79,7 +79,6 @@ export function NewCompanyForm({ onBack, onSave, onStepChange, initialStep = "co
   const [industry, setIndustry] = useState<string>("")
   const [subIndustry, setSubIndustry] = useState<string>("")
   const [website, setWebsite] = useState<string>("")
-  const [phoneNo, setPhoneNo] = useState<string>("")
   const [address, setAddress] = useState<string>("")
   const [postcode, setPostcode] = useState<string>("")
   const [city, setCity] = useState<string>("")
@@ -121,7 +120,6 @@ export function NewCompanyForm({ onBack, onSave, onStepChange, initialStep = "co
     setIndustry("")
     setSubIndustry("")
     setWebsite("")
-    setPhoneNo("")
     setAddress("")
     setPostcode("")
     setCity("")
@@ -468,7 +466,6 @@ export function NewCompanyForm({ onBack, onSave, onStepChange, initialStep = "co
       industry,
       subIndustry,
       website,
-      phoneNo,
       address,
       postcode,
       city,
@@ -1346,12 +1343,6 @@ export function NewCompanyForm({ onBack, onSave, onStepChange, initialStep = "co
                   onChange={(e) => setWebsite(e.target.value)}
                 />
               </div>
-              <div className="space-y-2">
-                <label htmlFor="phone-no" className="text-sm font-medium text-slate-700">
-                  Phone No.
-                </label>
-                <Input id="phone-no" className="w-full" value={phoneNo} onChange={(e) => setPhoneNo(e.target.value)} />
-              </div>
               <div className="space-y-2 col-span-full">
                 {" "}
                 {/* This field spans all columns */}
@@ -1632,7 +1623,6 @@ export function NewCompanyForm({ onBack, onSave, onStepChange, initialStep = "co
                           Designation: {contact.position || contact.designation || "Not specified"}
                         </p>
                         <p className="text-sm text-slate-600">E-mail: {contact.email || "Not specified"}</p>
-                        <p className="text-sm text-slate-600">Phone: {contact.phone || "Not specified"}</p>
                       </div>
                     ))}
                   </div>
@@ -1708,8 +1698,7 @@ export function NewCompanyForm({ onBack, onSave, onStepChange, initialStep = "co
                     ))}
                   </div>
                 </div>
-              )}
-
+\
               {/* Job Categories */}
               {jobGrade.length > 0 && (
                 <div className="border rounded-lg p-6">
