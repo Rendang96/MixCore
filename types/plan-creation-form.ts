@@ -16,7 +16,9 @@ export interface SubService {
 export interface ServiceTypeConfig {
   name: string // e.g., "GP - General Practitioner"
   code: string // e.g., "GP"
-  autoSuspension: number // percentage
+  autoSuspensionType: "Percentage" | "Amount" // New: Type of auto suspension
+  autoSuspensionPercentage: number // For percentage type
+  autoSuspensionAmount: number | "" // For amount type, MYR input
   subServices: SubService[]
   selected: boolean // New property to track if the main service type checkbox is selected
 }

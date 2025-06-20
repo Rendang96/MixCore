@@ -7,6 +7,8 @@ import { Label } from "@/components/ui/label"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 import { Slider } from "@/components/ui/slider"
 import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input" // Import Input for amount
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select" // Import Select for type
 import type { PlanCreationFormValues, ServiceTypeConfig } from "@/types/plan-creation-form"
 import { useState, useEffect } from "react"
 import { cn } from "@/lib/utils"
@@ -46,10 +48,9 @@ const SUB_SERVICES_DATA: { [key: string]: string[] } = {
     "Endocrinology",
     "Gastroenterology",
     "Neurology",
-    "Orthopedics",
     "Psychiatry",
-    "Pulmonology",
     "Oncology",
+    "Pulmonology",
     "Urology",
   ],
   OC: ["Eye Examination", "Vision Correction", "Eye Surgery", "Contact Lens Services", "Low Vision Services"],
@@ -181,7 +182,9 @@ export function ServiceConfigurationSection() {
     ) {
       const initialConfigs: ServiceTypeConfig[] = ALL_SERVICE_TYPES.map((service) => ({
         ...service,
-        autoSuspension: 80, // Default value
+        autoSuspensionType: "Percentage", // Default to Percentage
+        autoSuspensionPercentage: 80, // Default value
+        autoSuspensionAmount: "", // Default empty
         subServices: (SUB_SERVICES_DATA[service.code] || []).map((sub) => ({ name: sub, selected: false })),
         selected: false, // Initialize new 'selected' property
       }))
@@ -261,10 +264,30 @@ export function ServiceConfigurationSection() {
     setFieldValue("serviceConfigurations", updatedConfigs)
   }
 
-  const handleAutoSuspensionChange = (serviceCode: string, value: number[]) => {
+  const handleAutoSuspensionTypeChange = (serviceCode: string, type: "Percentage" | "Amount") => {
     const updatedConfigs = values.serviceConfigurations.map((config) => {
       if (config.code === serviceCode) {
-        return { ...config, autoSuspension: value[0] }
+        return { ...config, autoSuspensionType: type }
+      }
+      return config
+    })
+    setFieldValue("serviceConfigurations", updatedConfigs)
+  }
+
+  const handleAutoSuspensionPercentageChange = (serviceCode: string, value: number[]) => {
+    const updatedConfigs = values.serviceConfigurations.map((config) => {
+      if (config.code === serviceCode) {
+        return { ...config, autoSuspensionPercentage: value[0] }
+      }
+      return config
+    })
+    setFieldValue("serviceConfigurations", updatedConfigs)
+  }
+
+  const handleAutoSuspensionAmountChange = (serviceCode: string, value: string) => {
+    const updatedConfigs = values.serviceConfigurations.map((config) => {
+      if (config.code === serviceCode) {
+        return { ...config, autoSuspensionAmount: value === "" ? "" : Number(value) }
       }
       return config
     })
@@ -367,16 +390,46 @@ export function ServiceConfigurationSection() {
                           </span>
                         </div>
                         <div className="flex items-center gap-4">
-                          <span className="text-sm text-gray-600">
-                            Auto Suspension % {serviceConfig.autoSuspension}
-                          </span>
-                          <Slider
-                            value={[serviceConfig.autoSuspension]}
-                            max={100}
-                            step={1}
-                            onValueChange={(val) => handleAutoSuspensionChange(serviceConfig.code, val)}
-                            className="w-[100px]"
-                          />
+                          <Select
+                            value={serviceConfig.autoSuspensionType}
+                            onValueChange={(value: "Percentage" | "Amount") =>
+                              handleAutoSuspensionTypeChange(serviceConfig.code, value)
+                            }
+                          >
+                            <SelectTrigger className="w-[150px]">
+                              <SelectValue placeholder="Select type" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="Percentage">by %</SelectItem>
+                              <SelectItem value="Amount">Amount (Remaining Balance)</SelectItem>
+                            </SelectContent>
+                          </Select>
+
+                          {serviceConfig.autoSuspensionType === "Percentage" ? (
+                            <>
+                              <span className="text-sm text-gray-600">{serviceConfig.autoSuspensionPercentage}%</span>
+                              <Slider
+                                value={[serviceConfig.autoSuspensionPercentage]}
+                                max={100}
+                                step={1}
+                                onValueChange={(val) => handleAutoSuspensionPercentageChange(serviceConfig.code, val)}
+                                className="w-[100px]"
+                              />
+                            </>
+                          ) : (
+                            <div className="relative w-[150px]">
+                              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-gray-600">
+                                MYR
+                              </span>
+                              <Input
+                                type="number"
+                                value={serviceConfig.autoSuspensionAmount}
+                                onChange={(e) => handleAutoSuspensionAmountChange(serviceConfig.code, e.target.value)}
+                                className="pl-12"
+                                placeholder="0.00"
+                              />
+                            </div>
+                          )}
                         </div>
                       </div>
                     </AccordionTrigger>
