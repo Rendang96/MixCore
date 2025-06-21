@@ -46,7 +46,10 @@ export function BasicInfoStep({ onProviderSelectionToggle, onSpecialRulesToggle 
             <div className="space-y-2">
               <Label htmlFor="planType">Plan Type</Label>
               <Select onValueChange={(value) => setFieldValue("planType", value)} value={values.planType}>
-                <SelectTrigger className={errors.planType && touched.planType ? "border-red-500" : ""}>
+                <SelectTrigger
+                  className={errors.planType && touched.planType ? "border-red-500" : ""}
+                  aria-label="Select plan type"
+                >
                   <SelectValue placeholder="Select plan type" />
                 </SelectTrigger>
                 <SelectContent>
@@ -83,6 +86,24 @@ export function BasicInfoStep({ onProviderSelectionToggle, onSpecialRulesToggle 
               helperText="Please select an effective date first"
             />
           </div>
+
+          {/* Provider Selection Toggle Section */}
+          <Card className="p-4 border shadow-none">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <CardTitle className="text-lg">Provider Selection</CardTitle>
+                <CardDescription>Enable to select specific providers for this plan.</CardDescription>
+              </div>
+              <Switch
+                checked={values.providerSelectionEnabled}
+                onCheckedChange={(checked) => {
+                  setFieldValue("providerSelectionEnabled", checked)
+                  onProviderSelectionToggle(checked)
+                }}
+              />
+            </div>
+            {/* The actual provider selection records are now handled in Step 2 */}
+          </Card>
 
           {/* Service Configuration Section */}
           <ServiceConfigurationSection />
