@@ -1,5 +1,5 @@
 "use client"
-import { useState } from "react"
+import { useState, useCallback } from "react" // Import useCallback
 import { Form, FormikProvider, useFormik } from "formik"
 import * as Yup from "yup"
 import { Button } from "@/components/ui/button"
@@ -232,6 +232,21 @@ export function PlanCreationForm({ onBack, onSave, initialData }: PlanCreationFo
     enableReinitialize: true, // Reinitialize form when initialData changes
   })
 
+  // Memoize callback functions for stability
+  const handleProviderSelectionToggle = useCallback(
+    (enabled: boolean) => {
+      formik.setFieldValue("providerSelectionEnabled", enabled)
+    },
+    [formik.setFieldValue],
+  )
+
+  const handleSpecialRulesToggle = useCallback(
+    (enabled: boolean) => {
+      formik.setFieldValue("specialRulesEnabled", enabled)
+    },
+    [formik.setFieldValue],
+  )
+
   const steps = [
     {
       id: 1,
@@ -239,12 +254,8 @@ export function PlanCreationForm({ onBack, onSave, initialData }: PlanCreationFo
       component: BasicInfoStep,
       props: {
         initialData: initialData,
-        onProviderSelectionToggle: (enabled: boolean) => {
-          formik.setFieldValue("providerSelectionEnabled", enabled)
-        },
-        onSpecialRulesToggle: (enabled: boolean) => {
-          formik.setFieldValue("specialRulesEnabled", enabled)
-        },
+        onProviderSelectionToggle: handleProviderSelectionToggle, // Use memoized function
+        onSpecialRulesToggle: handleSpecialRulesToggle, // Use memoized function
       },
     },
     {
