@@ -10,7 +10,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { DatePicker } from "@/components/date-picker"
 import { Switch } from "@/components/ui/switch"
 import type { PlanCreationFormValues } from "@/types/plan-creation-form"
-import { ProviderSelectionSection } from "@/components/plan/sub-components/provider-selection-section"
 import { ServiceConfigurationSection } from "@/components/plan/sub-components/service-configuration-section"
 import { EligibilityCriteriaSection } from "@/components/plan/sub-components/eligibility-criteria-section"
 import { MaternityCoverageSection } from "@/components/plan/sub-components/maternity-coverage-section"
@@ -84,24 +83,6 @@ export function BasicInfoStep({ onProviderSelectionToggle, onSpecialRulesToggle 
               helperText="Please select an effective date first"
             />
           </div>
-
-          {/* Provider Selection Section */}
-          <Card className="p-4 border shadow-none">
-            <div className="flex items-center justify-between mb-4">
-              <div>
-                <CardTitle className="text-lg">Provider Selection</CardTitle>
-                <CardDescription>Configure provider access and selection criteria for this plan</CardDescription>
-              </div>
-              <Switch
-                checked={values.providerSelectionEnabled}
-                onCheckedChange={(checked) => {
-                  setFieldValue("providerSelectionEnabled", checked)
-                  onProviderSelectionToggle(checked)
-                }}
-              />
-            </div>
-            {values.providerSelectionEnabled && <ProviderSelectionSection />}
-          </Card>
 
           {/* Service Configuration Section */}
           <ServiceConfigurationSection />
